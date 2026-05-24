@@ -7,62 +7,48 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxPassKeyEncrypt
- * Signature: ([B[B)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyEncrypt
-  (JNIEnv *, jclass, jbyteArray, jbyteArray);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxGetSalt
- * Signature: ([B)[B
+ * Method:    toxPassKeyFree
  */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxGetSalt
-  (JNIEnv *, jclass, jbyteArray);
+JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyFree
+  (JNIEnv *, jclass, jint);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxIsDataEncrypted
- * Signature: ([B)Z
+ * Method:    toxPassKeyDerive
  */
-JNIEXPORT jboolean JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxIsDataEncrypted
+JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDerive
   (JNIEnv *, jclass, jbyteArray);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
  * Method:    toxPassKeyDeriveWithSalt
- * Signature: ([B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDeriveWithSalt
+JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDeriveWithSalt
   (JNIEnv *, jclass, jbyteArray, jbyteArray);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxPassKeyDerive
- * Signature: ([B)[B
+ * Method:    toxPassKeyEncrypt
  */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDerive
-  (JNIEnv *, jclass, jbyteArray);
+JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyEncrypt
+  (JNIEnv *, jclass, jint, jbyteArray);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
  * Method:    toxPassKeyDecrypt
- * Signature: ([B[B)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDecrypt
-  (JNIEnv *, jclass, jbyteArray, jbyteArray);
+  (JNIEnv *, jclass, jint, jbyteArray);
 
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxHash
- * Signature: ([B)[B
- */
+JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxGetSalt
+  (JNIEnv *, jclass, jbyteArray);
+JNIEXPORT jboolean JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxIsDataEncrypted
+  (JNIEnv *, jclass, jbyteArray);
 JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxHash
   (JNIEnv *, jclass, jbyteArray);
-
 #ifdef __cplusplus
 }
 #endif
