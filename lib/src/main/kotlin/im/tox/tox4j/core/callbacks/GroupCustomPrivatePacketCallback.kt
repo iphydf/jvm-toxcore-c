@@ -1,9 +1,9 @@
 package im.tox.tox4j.core.callbacks
 
+import im.tox.tox4j.core.data.ToxGroupCustomPrivatePacket
 import im.tox.tox4j.core.data.ToxGroupNumber
 import im.tox.tox4j.core.data.ToxGroupPeerNumber
 
-/** This event is triggered when the client receives a custom private packet. */
 interface GroupCustomPrivatePacketCallback<ToxCoreState> {
     /**
      * @param groupNumber The group number of the group the packet is intended for.
@@ -13,7 +13,7 @@ interface GroupCustomPrivatePacketCallback<ToxCoreState> {
     fun groupCustomPrivatePacket(
         groupNumber: ToxGroupNumber,
         peerId: ToxGroupPeerNumber,
-        data: ByteArray,
+        data: ToxGroupCustomPrivatePacket,
         state: ToxCoreState,
     ): ToxCoreState = state
 }

@@ -1,40 +1,232 @@
+// Handle-based JNI shims for tox_encryptsave. Tox_Pass_Key* values
+// live in the local instance pool below; the JNI surface only ever
+// crosses an int instance number. Lifetime is explicit: passKeyDerive
+// adds a slot, passKeyFree releases it.
+//
+// The hand-written Kotlin wrapper class
+// im.tox.tox4j.impl.jni.PassKey implements AutoCloseable around the
+// instance number, so users normally see `.use { … }` rather than
+// raw integer handles.
+
+#include <memory>
+#include <mutex>
+#include <vector>
+
 #include "ToxCrypto.h"
 
 
-using pass_key_impl = uint8_t[TOX_PASS_SALT_LENGTH + TOX_PASS_KEY_LENGTH];
-
+namespace {
 
 struct pass_key_deleter
 {
   void operator () (Tox_Pass_Key *pass_key)
   {
-    delete[] reinterpret_cast<pass_key_impl *> (pass_key);
+    tox_pass_key_free (pass_key);
   }
 };
 
-typedef std::unique_ptr<Tox_Pass_Key, pass_key_deleter> pass_key_ptr;
+// The pool owns Tox_Pass_Key* through 'shared_ptr' so that an
+// in-flight 'toxPassKeyEncrypt'/'Decrypt' on one thread can't be
+// torn down by a concurrent 'PassKey.close()' on another. Each
+// operation acquires its own 'shared_ptr' under the pool mutex; the
+// object isn't destroyed until both the pool slot and every borrowed
+// shared_ptr are released. 'unique_ptr' would either UAF here or
+// force the operation to hold the pool mutex for its entire
+// duration.
+typedef std::shared_ptr<Tox_Pass_Key> pass_key_ptr;
 
+// Vector slot N holds the Tox_Pass_Key for instance number N+1; a
+// null slot means the handle was freed and the slot is available
+// for reuse. 'pass_key_free_list' carries 0-based indices of null
+// slots so 'add_pass_key' can reuse them in O(1) instead of pushing
+// back forever.
+std::mutex pass_key_mutex;
+std::vector<pass_key_ptr> pass_key_pool;
+std::vector<size_t> pass_key_free_list;
 
-static jbyteArray
-pass_key_to_java (JNIEnv *env, Tox_Pass_Key const &out_key)
+jint
+add_pass_key (pass_key_ptr pass_key)
 {
-  return toJavaArray (env,
-    *reinterpret_cast<pass_key_impl const *> (&out_key));
+  std::lock_guard<std::mutex> lock (pass_key_mutex);
+  if (!pass_key_free_list.empty ())
+    {
+      size_t idx = pass_key_free_list.back ();
+      pass_key_free_list.pop_back ();
+      pass_key_pool[idx] = std::move (pass_key);
+      return static_cast<jint> (idx + 1);
+    }
+  pass_key_pool.push_back (std::move (pass_key));
+  return static_cast<jint> (pass_key_pool.size ());
 }
 
-static pass_key_ptr
-pass_key_from_java (JNIEnv *env, jbyteArray passKeyArray)
+// Returns a private shared_ptr to the pool entry, keeping the object
+// alive for the caller's duration even if 'free_pass_key' runs
+// concurrently. Returns nullptr when the slot is empty (already
+// freed or never allocated).
+pass_key_ptr
+get_pass_key (jint instance_number)
 {
-  pass_key_ptr pass_key (reinterpret_cast<Tox_Pass_Key *> (new pass_key_impl));
+  std::lock_guard<std::mutex> lock (pass_key_mutex);
+  if (instance_number < 1
+      || static_cast<size_t> (instance_number) > pass_key_pool.size ())
+    return nullptr;
+  return pass_key_pool[instance_number - 1];
+}
 
-  auto passKey = fromJavaArray (env, passKeyArray);
-  tox4j_assert (passKey.size () == TOX_PASS_SALT_LENGTH + TOX_PASS_KEY_LENGTH);
-  std::copy (
-    passKey.begin (),
-    passKey.end (),
-    reinterpret_cast<uint8_t *> (pass_key.get ()));
+void
+free_pass_key (jint instance_number)
+{
+  std::lock_guard<std::mutex> lock (pass_key_mutex);
+  if (instance_number < 1
+      || static_cast<size_t> (instance_number) > pass_key_pool.size ())
+    return;
+  size_t idx = static_cast<size_t> (instance_number) - 1;
+  if (pass_key_pool[idx])
+    {
+      // Drop the pool's reference. If another thread is in the
+      // middle of encrypt/decrypt, its shared_ptr keeps the object
+      // alive until that call returns; destruction then runs
+      // outside any pool lock.
+      pass_key_pool[idx].reset ();
+      pass_key_free_list.push_back (idx);
+    }
+}
 
-  return pass_key;
+}  // namespace
+
+
+/*
+ * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
+ * Method:    toxPassKeyFree
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyFree
+  (JNIEnv *, jclass, jint instance_number)
+{
+  free_pass_key (instance_number);
+}
+
+
+/*
+ * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
+ * Method:    toxPassKeyDerive
+ * Signature: ([B)I
+ */
+JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDerive
+  (JNIEnv *env, jclass, jbyteArray passphraseArray)
+{
+  auto passphrase = fromJavaArray (env, passphraseArray);
+
+  return with_error_handling<ToxCrypto> (env,
+    [] (Tox_Pass_Key *out_key)
+      {
+        return add_pass_key (pass_key_ptr (out_key, pass_key_deleter ()));
+      },
+    tox_pass_key_derive,
+    passphrase.data (), passphrase.size ()
+  );
+}
+
+
+/*
+ * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
+ * Method:    toxPassKeyDeriveWithSalt
+ * Signature: ([B[B)I
+ */
+JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDeriveWithSalt
+  (JNIEnv *env, jclass, jbyteArray passphraseArray, jbyteArray saltArray)
+{
+  auto passphrase = fromJavaArray (env, passphraseArray);
+  auto salt = fromJavaArray (env, saltArray);
+
+  if (salt.size () != TOX_PASS_SALT_LENGTH)
+    {
+      throw_tox_exception<ToxCrypto, TOX_ERR_KEY_DERIVATION> (env, "INVALID_LENGTH");
+      return 0;
+    }
+
+  return with_error_handling<ToxCrypto> (env,
+    [] (Tox_Pass_Key *out_key)
+      {
+        return add_pass_key (pass_key_ptr (out_key, pass_key_deleter ()));
+      },
+    tox_pass_key_derive_with_salt,
+    passphrase.data (), passphrase.size (),
+    salt.data ()
+  );
+}
+
+
+/*
+ * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
+ * Method:    toxPassKeyEncrypt
+ * Signature: (I[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyEncrypt
+  (JNIEnv *env, jclass, jint instance_number, jbyteArray dataArray)
+{
+  // Hold the pass key by shared_ptr for the duration of the encrypt
+  // call; concurrent free_pass_key on another thread can drop the
+  // pool's reference but cannot destroy the underlying object until
+  // this shared_ptr also goes out of scope.
+  pass_key_ptr pass_key = get_pass_key (instance_number);
+  if (!pass_key)
+    {
+      throw_tox_exception<ToxCrypto, TOX_ERR_ENCRYPTION> (env, "NULL");
+      return nullptr;
+    }
+
+  auto data = fromJavaArray (env, dataArray);
+  std::vector<uint8_t> out (data.size () + TOX_PASS_ENCRYPTION_EXTRA_LENGTH);
+
+  return with_error_handling<ToxCrypto> (env,
+    [env, &out] (bool)
+      {
+        return toJavaArray (env, out);
+      },
+    tox_pass_key_encrypt,
+    pass_key.get (),
+    data.data (), data.size (),
+    out.data ()
+  );
+}
+
+
+/*
+ * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
+ * Method:    toxPassKeyDecrypt
+ * Signature: (I[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDecrypt
+  (JNIEnv *env, jclass, jint instance_number, jbyteArray dataArray)
+{
+  pass_key_ptr pass_key = get_pass_key (instance_number);
+  if (!pass_key)
+    {
+      throw_tox_exception<ToxCrypto, TOX_ERR_DECRYPTION> (env, "NULL");
+      return nullptr;
+    }
+
+  auto data = fromJavaArray (env, dataArray);
+  std::vector<uint8_t> out (
+    // If size is too small, the library will throw INVALID_LENGTH, but we need
+    // to ensure that we don't end up with negative (or very large) output arrays here.
+    std::max (
+      0l,
+      static_cast<long> (data.size ()) - TOX_PASS_ENCRYPTION_EXTRA_LENGTH
+    )
+  );
+
+  return with_error_handling<ToxCrypto> (env,
+    [env, &out] (bool)
+      {
+        return toJavaArray (env, out);
+      },
+    tox_pass_key_decrypt,
+    pass_key.get (),
+    data.data (), data.size (),
+    out.data ()
+  );
 }
 
 
@@ -47,10 +239,20 @@ JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxGetSalt
   (JNIEnv *env, jclass, jbyteArray dataArray)
 {
   auto data = fromJavaArray (env, dataArray);
+  // tox_get_salt reads TOX_ENC_SAVE_MAGIC_LENGTH bytes before
+  // checking validity; passing a buffer shorter than the magic
+  // header (let alone the salt region) is undefined behaviour. The
+  // C function's only documented failure case is BAD_FORMAT, which
+  // is what a short buffer logically maps to.
+  if (data.size () < TOX_PASS_ENCRYPTION_EXTRA_LENGTH)
+    {
+      throw_tox_exception<ToxCrypto, TOX_ERR_GET_SALT> (env, "BAD_FORMAT");
+      return nullptr;
+    }
   uint8_t salt[TOX_PASS_SALT_LENGTH] = { 0 };
 
   return with_error_handling<ToxCrypto> (env,
-    [env, &salt] (bool er)
+    [env, &salt] (bool)
       {
         return toJavaArray (env, salt);
       },
@@ -72,115 +274,4 @@ JNIEXPORT jboolean JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxIsDataEncr
   if (data.size () < TOX_PASS_ENCRYPTION_EXTRA_LENGTH)
     return false;
   return tox_is_data_encrypted (data.data ());
-}
-
-
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxPassKeyDeriveWithSalt
- * Signature: ([B[B)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDeriveWithSalt
-  (JNIEnv *env, jclass, jbyteArray passphraseArray, jbyteArray saltArray)
-{
-  auto passphrase = fromJavaArray (env, passphraseArray);
-  auto salt = fromJavaArray (env, saltArray);
-
-  if (salt.size () != TOX_PASS_SALT_LENGTH)
-    {
-      throw_tox_exception<ToxCrypto, TOX_ERR_KEY_DERIVATION> (env, "INVALID_LENGTH");
-      return nullptr;
-    }
-
-  return with_error_handling<ToxCrypto> (env,
-    [env] (Tox_Pass_Key *out_key)
-      {
-        pass_key_ptr deleter (out_key);
-        return pass_key_to_java (env, *out_key);
-      },
-    tox_pass_key_derive_with_salt,
-    passphrase.data (), passphrase.size (),
-    salt.data ()
-  );
-}
-
-
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxPassKeyDerive
- * Signature: ([B)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDerive
-  (JNIEnv *env, jclass, jbyteArray passphraseArray)
-{
-  auto passphrase = fromJavaArray (env, passphraseArray);
-
-  return with_error_handling<ToxCrypto> (env,
-    [env] (Tox_Pass_Key *out_key)
-      {
-        pass_key_ptr deleter (out_key);
-        return pass_key_to_java (env, *out_key);
-      },
-    tox_pass_key_derive,
-    passphrase.data (), passphrase.size ()
-  );
-}
-
-
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxPassKeyDecrypt
- * Signature: ([B[B)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyDecrypt
-  (JNIEnv *env, jclass, jbyteArray dataArray, jbyteArray passKeyArray)
-{
-  auto data = fromJavaArray (env, dataArray);
-  std::vector<uint8_t> out (
-    // If size is too small, the library will throw INVALID_LENGTH, but we need
-    // to ensure that we don't end up with negative (or very large) output arrays here.
-    std::max (
-      0l,
-      static_cast<long> (data.size ()) - TOX_PASS_ENCRYPTION_EXTRA_LENGTH
-    )
-  );
-
-  pass_key_ptr pass_key = pass_key_from_java (env, passKeyArray);
-
-  return with_error_handling<ToxCrypto> (env,
-    [env, &out] (bool)
-      {
-        return toJavaArray (env, out);
-      },
-    tox_pass_key_decrypt,
-    pass_key.get (),
-    data.data (), data.size (),
-    out.data ()
-  );
-}
-
-
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxCryptoJni
- * Method:    toxPassKeyEncrypt
- * Signature: ([B[B)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCryptoJni_toxPassKeyEncrypt
-  (JNIEnv *env, jclass, jbyteArray dataArray, jbyteArray passKeyArray)
-{
-  auto data = fromJavaArray (env, dataArray);
-  std::vector<uint8_t> out (data.size () + TOX_PASS_ENCRYPTION_EXTRA_LENGTH);
-
-  pass_key_ptr pass_key = pass_key_from_java (env, passKeyArray);
-
-  return with_error_handling<ToxCrypto> (env,
-    [env, &out] (bool)
-      {
-        return toJavaArray (env, out);
-      },
-    tox_pass_key_encrypt,
-    pass_key.get (),
-    data.data (), data.size (),
-    out.data ()
-  );
 }

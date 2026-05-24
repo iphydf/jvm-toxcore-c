@@ -1,10 +1,20 @@
 package im.tox.tox4j.core.data
 
-import kotlin.jvm.JvmInline
-
 /**
- * A peer name in a conference.
+ * A typed byte array for ToxConferencePeerName.
+ *
+ * Plain `class` rather than `@JvmInline value class`: a value class
+ * over `ByteArray` inherits reference equality (and can't override
+ * `equals`), so two instances with identical bytes compare unequal.
+ * `toString` omits payload bytes — these can carry user-facing text
+ * or sensitive material that shouldn't land in logs.
  */
-@JvmInline value class ToxConferencePeerName(
+class ToxConferencePeerName(
     val value: ByteArray,
-)
+) {
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxConferencePeerName && value.contentEquals(other.value))
+
+    override fun hashCode(): Int = value.contentHashCode()
+
+    override fun toString(): String = "ToxConferencePeerName(<${value.size} bytes>)"
+}

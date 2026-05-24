@@ -10,6 +10,8 @@
 // Header from toxcore.
 #include <tox/core.h>
 
+#include <tuple>
+
 #ifndef SUBSYSTEM
 #define SUBSYSTEM TOX
 #define STRUCT    Tox
@@ -105,7 +107,22 @@ public:
   static std::vector<ConvertT>
   make (GetSizeArgs ...args)
   {
-    std::vector<ValueT> vec(get_size(args...));
+    // The error pointer is the last argument; the toxcore C ABI defines
+    // ERR_*_OK as the zero value of every error enum, so we can detect a
+    // failed `get_size` by dereferencing it.
+    auto error_ptr = std::get<sizeof...(GetSizeArgs) - 1>(std::forward_as_tuple(args...));
+
+    size_t const sz = get_size(args...);
+    // If `get_size` set the error, its returned `sz` is unreliable —
+    // allocating `std::vector(sz)` from a garbage value can abort with
+    // `std::length_error: cannot create std::vector larger than
+    // max_size()`. Return early; with_error_handling will pick up the
+    // error code and throw the matching Tox exception.
+    if (*error_ptr != 0) {
+      return {};
+    }
+
+    std::vector<ValueT> vec(sz);
     if (!drop_last([&](auto ...argsWithoutErr) {
       // Ignore error here. If get_size failed, then get_data will fail in the same way.
       return get_data(argsWithoutErr..., vec.data(), nullptr);
