@@ -7,10 +7,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavNew
- * Signature: (I)I
  */
 JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavNew
   (JNIEnv *, jclass, jint);
@@ -18,23 +18,13 @@ JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavNew
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavKill
- * Signature: (I)V
  */
 JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavKill
   (JNIEnv *, jclass, jint);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
- * Method:    toxavFinalize
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavFinalize
-  (JNIEnv *, jclass, jint);
-
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavIterationInterval
- * Signature: (I)I
  */
 JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavIterationInterval
   (JNIEnv *, jclass, jint);
@@ -42,7 +32,6 @@ JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavIterationInterva
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavIterate
- * Signature: (I)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavIterate
   (JNIEnv *, jclass, jint);
@@ -50,7 +39,6 @@ JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavIterate
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavCall
- * Signature: (IIII)V
  */
 JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavCall
   (JNIEnv *, jclass, jint, jint, jint, jint);
@@ -58,7 +46,6 @@ JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavCall
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavAnswer
- * Signature: (IIII)V
  */
 JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavAnswer
   (JNIEnv *, jclass, jint, jint, jint, jint);
@@ -66,43 +53,40 @@ JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavAnswer
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavCallControl
- * Signature: (III)V
  */
 JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavCallControl
   (JNIEnv *, jclass, jint, jint, jint);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
+ * Method:    toxavAudioSendFrame
+ */
+JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavAudioSendFrame
+  (JNIEnv *, jclass, jint, jint, jshortArray, jlong, jbyte, jint);
+
+/*
+ * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavAudioSetBitRate
- * Signature: (III)V
  */
 JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavAudioSetBitRate
   (JNIEnv *, jclass, jint, jint, jint);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxAvJni
- * Method:    toxavVideoSetBitRate
- * Signature: (III)V
- */
-JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavVideoSetBitRate
-  (JNIEnv *, jclass, jint, jint, jint);
-
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxAvJni
- * Method:    toxavAudioSendFrame
- * Signature: (II[SIII)V
- */
-JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavAudioSendFrame
-  (JNIEnv *, jclass, jint, jint, jshortArray, jint, jint, jint);
-
-/*
- * Class:     im_tox_tox4j_impl_jni_ToxAvJni
  * Method:    toxavVideoSendFrame
- * Signature: (IIII[B[B[B)V
  */
 JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavVideoSendFrame
   (JNIEnv *, jclass, jint, jint, jint, jint, jbyteArray, jbyteArray, jbyteArray);
 
+/*
+ * Class:     im_tox_tox4j_impl_jni_ToxAvJni
+ * Method:    toxavVideoSetBitRate
+ */
+JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavVideoSetBitRate
+  (JNIEnv *, jclass, jint, jint, jint);
+
+JNIEXPORT void JNICALL Java_im_tox_tox4j_impl_jni_ToxAvJni_toxavFinalize
+  (JNIEnv *, jclass, jint);
 #ifdef __cplusplus
 }
 #endif

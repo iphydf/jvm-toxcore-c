@@ -1,10 +1,17 @@
 package im.tox.tox4j.core.data
 
-import kotlin.jvm.JvmInline
-
 /**
- * A title of a conference.
+ * A typed byte array for ToxConferenceTitle.
+ *
+ * Not a value class: those can't override `equals` to compare the bytes.
+ * `toString` leaves out the bytes, which can be private.
  */
-@JvmInline value class ToxConferenceTitle(
+class ToxConferenceTitle(
     val value: ByteArray,
-)
+) {
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxConferenceTitle && value.contentEquals(other.value))
+
+    override fun hashCode(): Int = value.contentHashCode()
+
+    override fun toString(): String = "ToxConferenceTitle(<${value.size} bytes>)"
+}

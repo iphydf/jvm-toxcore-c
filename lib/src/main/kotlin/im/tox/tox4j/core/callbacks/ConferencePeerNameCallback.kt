@@ -1,9 +1,9 @@
 package im.tox.tox4j.core.callbacks
 
 import im.tox.tox4j.core.data.ToxConferenceNumber
+import im.tox.tox4j.core.data.ToxConferencePeerName
 import im.tox.tox4j.core.data.ToxConferencePeerNumber
 
-/** This event is triggered when a peer changes their name. */
 interface ConferencePeerNameCallback<ToxCoreState> {
     /**
      * @param conferenceNumber The conference number of the conference the peer is in.
@@ -13,7 +13,7 @@ interface ConferencePeerNameCallback<ToxCoreState> {
     fun conferencePeerName(
         conferenceNumber: ToxConferenceNumber,
         peerNumber: ToxConferencePeerNumber,
-        name: ByteArray,
+        name: ToxConferencePeerName,
         state: ToxCoreState,
     ): ToxCoreState = state
 }

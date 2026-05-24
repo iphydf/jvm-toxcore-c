@@ -1,9 +1,8 @@
 package im.tox.tox4j.core.callbacks
 
-import im.tox.tox4j.core.data.ToxFriendRequestMessage
+import im.tox.tox4j.core.data.ToxFriendMessage
 import im.tox.tox4j.core.data.ToxPublicKey
 
-/** This event is triggered when a friend request is received. */
 interface FriendRequestCallback<ToxCoreState> {
     /**
      * @param publicKey The Public Key of the user who sent the friend request.
@@ -11,7 +10,7 @@ interface FriendRequestCallback<ToxCoreState> {
      */
     fun friendRequest(
         publicKey: ToxPublicKey,
-        message: ToxFriendRequestMessage,
+        message: ToxFriendMessage,
         state: ToxCoreState,
     ): ToxCoreState = state
 }
