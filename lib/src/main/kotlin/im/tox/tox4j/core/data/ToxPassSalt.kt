@@ -3,17 +3,21 @@ package im.tox.tox4j.core.data
 import im.tox.tox4j.crypto.ToxCryptoConstants
 
 class ToxPassSalt(
-    val value: ByteArray,
+    bytes: ByteArray,
 ) {
     init {
-        require(value.size == ToxCryptoConstants.SALT_LENGTH) {
-            "ToxPassSalt must be ${ToxCryptoConstants.SALT_LENGTH} bytes, got ${value.size}"
+        require(bytes.size == ToxCryptoConstants.SALT_LENGTH) {
+            "ToxPassSalt must be ${ToxCryptoConstants.SALT_LENGTH} bytes, got ${bytes.size}"
         }
     }
 
-    override fun equals(other: Any?): Boolean = this === other || (other is ToxPassSalt && value.contentEquals(other.value))
+    internal val bytes: ByteArray = bytes.copyOf()
 
-    override fun hashCode(): Int = value.contentHashCode()
+    fun toByteArray(): ByteArray = bytes.copyOf()
 
-    override fun toString(): String = "ToxPassSalt(<${value.size} bytes>)"
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxPassSalt && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = "ToxPassSalt(<${bytes.size} bytes>)"
 }

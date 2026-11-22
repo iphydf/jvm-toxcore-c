@@ -1,6 +1,6 @@
 package im.tox.tox4j.core
 
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.data.ToxDhtId
 import im.tox.tox4j.core.data.ToxFriendNumber
 import im.tox.tox4j.core.data.ToxPort
@@ -40,15 +40,15 @@ class ToxCoreTest {
             var connected = false
 
             val isConnected =
-                object : ToxCoreEventListener<Boolean> {
-                    override fun selfConnectionStatus(
-                        connectionStatus: ToxConnection,
-                        state: Boolean,
-                    ) = connectionStatus != ToxConnection.NONE
+                { state: Boolean, event: ToxCoreEvent ->
+                    when (event) {
+                        is ToxCoreEvent.SelfConnectionStatus -> with(event) { connectionStatus != ToxConnection.NONE }
+                        else -> state
+                    }
                 }
 
             while (!connected) {
-                connected = tox.iterate(isConnected, connected)
+                connected = tox.iterate().fold(connected, isConnected)
                 delay(tox.iterationInterval.toLong())
             }
         }
@@ -68,17 +68,16 @@ class ToxCoreTest {
             var connected2 = false
 
             val isConnected =
-                object : ToxCoreEventListener<Boolean> {
-                    override fun friendConnectionStatus(
-                        friendNumber: ToxFriendNumber,
-                        connectionStatus: ToxConnection,
-                        state: Boolean,
-                    ) = connectionStatus != ToxConnection.NONE
+                { state: Boolean, event: ToxCoreEvent ->
+                    when (event) {
+                        is ToxCoreEvent.FriendConnectionStatus -> with(event) { connectionStatus != ToxConnection.NONE }
+                        else -> state
+                    }
                 }
 
             while (!connected1 && !connected2) {
-                connected1 = tox1.iterate(isConnected, connected1)
-                connected2 = tox2.iterate(isConnected, connected2)
+                connected1 = tox1.iterate().fold(connected1, isConnected)
+                connected2 = tox2.iterate().fold(connected2, isConnected)
                 delay(tox1.iterationInterval.toLong())
             }
         }

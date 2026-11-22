@@ -4,9 +4,9 @@ import im.tox.tox4j.core.ToxCore
 import im.tox.tox4j.core.data.ToxSecretKey
 import im.tox.tox4j.core.enums.ToxSavedataType
 
-/** Base type for all save data kinds. */
-@Suppress("ktlint:standard:no-consecutive-comments")
+/** The various kinds of save data that can be loaded by [ToxCore]. */
 object SavedataOptions {
+    /** Base type for all save data kinds. */
     sealed interface Type {
         /** The low level [ToxSavedataType] enum to pass to [ToxCore]. */
         val savedataType: ToxSavedataType
@@ -14,8 +14,6 @@ object SavedataOptions {
         /** Serialised save data. The format depends on [savedataType]. */
         val savedata: ByteArray
     }
-
-    /** The various kinds of save data that can be loaded by [ToxCore]. */
 
     /** No save data. */
     object None : Type {
@@ -50,7 +48,7 @@ object SavedataOptions {
         private val key: ToxSecretKey,
     ) : Type {
         override val savedataType: ToxSavedataType = ToxSavedataType.SECRET_KEY
-        override val savedata: ByteArray = key.value
+        override val savedata: ByteArray = key.toByteArray()
 
         override fun equals(other: Any?): Boolean = this === other || (other is SecretKey && savedata.contentEquals(other.savedata))
 

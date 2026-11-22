@@ -3,17 +3,21 @@ package im.tox.tox4j.core.data
 import im.tox.tox4j.core.ToxCoreConstants
 
 class ToxGroupPeerPublicKey(
-    val value: ByteArray,
+    bytes: ByteArray,
 ) {
     init {
-        require(value.size == ToxCoreConstants.GROUP_PEER_PUBLIC_KEY_SIZE) {
-            "ToxGroupPeerPublicKey must be ${ToxCoreConstants.GROUP_PEER_PUBLIC_KEY_SIZE} bytes, got ${value.size}"
+        require(bytes.size == ToxCoreConstants.GROUP_PEER_PUBLIC_KEY_SIZE) {
+            "ToxGroupPeerPublicKey must be ${ToxCoreConstants.GROUP_PEER_PUBLIC_KEY_SIZE} bytes, got ${bytes.size}"
         }
     }
 
-    override fun equals(other: Any?): Boolean = this === other || (other is ToxGroupPeerPublicKey && value.contentEquals(other.value))
+    internal val bytes: ByteArray = bytes.copyOf()
 
-    override fun hashCode(): Int = value.contentHashCode()
+    fun toByteArray(): ByteArray = bytes.copyOf()
 
-    override fun toString(): String = "ToxGroupPeerPublicKey(<${value.size} bytes>)"
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxGroupPeerPublicKey && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = "ToxGroupPeerPublicKey(<${bytes.size} bytes>)"
 }

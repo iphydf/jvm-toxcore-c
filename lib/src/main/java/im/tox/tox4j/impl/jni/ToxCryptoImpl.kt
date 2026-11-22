@@ -9,7 +9,7 @@ object ToxCryptoImpl : ToxCrypto<PassKey> {
     override fun passKeyDeriveWithSalt(
         passphrase: ByteArray,
         salt: ToxPassSalt,
-    ): PassKey = PassKey(ToxCryptoJni.toxPassKeyDeriveWithSalt(passphrase, salt.value))
+    ): PassKey = PassKey(ToxCryptoJni.toxPassKeyDeriveWithSalt(passphrase, salt.bytes))
 
     override fun encrypt(
         passKey: PassKey,

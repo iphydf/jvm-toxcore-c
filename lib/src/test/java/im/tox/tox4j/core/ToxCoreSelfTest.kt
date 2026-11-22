@@ -138,9 +138,9 @@ class ToxCoreSelfTest {
     fun setNospam_modifiesAddress() {
         ToxCoreImpl(options).use { tox ->
             tox.setNospam(0x11111111)
-            val addrA = tox.address.value.copyOf()
+            val addrA = tox.address.toByteArray()
             tox.setNospam(0x22222222)
-            val addrB = tox.address.value
+            val addrB = tox.address.toByteArray()
             assertContentEquals(
                 addrA.copyOfRange(0, ToxCoreConstants.PUBLIC_KEY_SIZE),
                 addrB.copyOfRange(0, ToxCoreConstants.PUBLIC_KEY_SIZE),

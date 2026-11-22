@@ -1,7 +1,7 @@
 package im.tox.tox4j.e2e
 
 import im.tox.tox4j.core.ToxCoreConstants
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.data.ToxFileId
 import im.tox.tox4j.core.data.ToxFileNumber
 import im.tox.tox4j.core.data.ToxFriendNumber
@@ -36,57 +36,52 @@ object SubtestFile {
         )
 
         val handler =
-            object : ToxCoreEventListener<State> {
-                override fun fileRecv(
-                    friendNumber: ToxFriendNumber,
-                    fileNumber: ToxFileNumber,
-                    kind: Int,
-                    fileSize: Long,
-                    filename: ByteArray,
-                    state: State,
-                ): State =
-                    if (state.bobFileNumber == null && friendNumber.value == aliceFromBob.value) {
-                        bob.fileControl(friendNumber, fileNumber, ToxFileControl.RESUME)
-                        state.copy(bobFileNumber = fileNumber)
-                    } else {
-                        state
-                    }
-
-                override fun fileRecvChunk(
-                    friendNumber: ToxFriendNumber,
-                    fileNumber: ToxFileNumber,
-                    position: Long,
-                    data: ByteArray,
-                    state: State,
-                ): State =
-                    if (friendNumber.value == aliceFromBob.value && fileNumber == state.bobFileNumber) {
-                        if (data.isEmpty()) {
-                            state.copy(completed = true)
-                        } else {
-                            state.copy(received = state.received + data)
-                        }
-                    } else {
-                        state
-                    }
-
-                override fun fileChunkRequest(
-                    friendNumber: ToxFriendNumber,
-                    fileNumber: ToxFileNumber,
-                    position: Long,
-                    length: Long,
-                    state: State,
-                ): State {
-                    if (friendNumber.value == bobFromAlice.value && fileNumber == aliceFileNumber) {
-                        val from = position.toInt()
-                        val len = length.toInt()
-                        if (len == 0 || from >= payload.size) {
-                            alice.fileSendChunk(friendNumber, fileNumber, position, ByteArray(0))
-                        } else {
-                            val end = minOf(from + len, payload.size)
-                            alice.fileSendChunk(friendNumber, fileNumber, position, payload.copyOfRange(from, end))
+            { state: State, event: ToxCoreEvent ->
+                when (event) {
+                    is ToxCoreEvent.FileRecv -> {
+                        with(event) {
+                            if (state.bobFileNumber == null && friendNumber == aliceFromBob) {
+                                bob.fileControl(friendNumber, fileNumber, ToxFileControl.RESUME)
+                                state.copy(bobFileNumber = fileNumber)
+                            } else {
+                                state
+                            }
                         }
                     }
-                    return state
+
+                    is ToxCoreEvent.FileRecvChunk -> {
+                        with(event) {
+                            if (friendNumber == aliceFromBob && fileNumber == state.bobFileNumber) {
+                                if (data.isEmpty()) {
+                                    state.copy(completed = true)
+                                } else {
+                                    state.copy(received = state.received + data)
+                                }
+                            } else {
+                                state
+                            }
+                        }
+                    }
+
+                    is ToxCoreEvent.FileChunkRequest -> {
+                        with(event) {
+                            if (friendNumber == bobFromAlice && fileNumber == aliceFileNumber) {
+                                val from = position.toInt()
+                                val len = length.toInt()
+                                if (len == 0 || from >= payload.size) {
+                                    alice.fileSendChunk(friendNumber, fileNumber, position, ByteArray(0))
+                                } else {
+                                    val end = minOf(from + len, payload.size)
+                                    alice.fileSendChunk(friendNumber, fileNumber, position, payload.copyOfRange(from, end))
+                                }
+                            }
+                            state
+                        }
+                    }
+
+                    else -> {
+                        state
+                    }
                 }
             }
 

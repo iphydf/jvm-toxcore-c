@@ -147,7 +147,7 @@ class ToxCoreFriendPacketTest {
         val savedata: ByteArray
         val expectedFriendKey: ByteArray
         ToxCoreImpl(options).use { peer ->
-            expectedFriendKey = peer.publicKey.value
+            expectedFriendKey = peer.publicKey.toByteArray()
             ToxCoreImpl(options).use { tox ->
                 tox.friendAddNorequest(ToxPublicKey(expectedFriendKey))
                 savedata = tox.savedata
@@ -168,7 +168,7 @@ class ToxCoreFriendPacketTest {
                     .friendGetPublicKey(
                         im.tox.tox4j.core.data
                             .ToxFriendNumber(0),
-                    ).value,
+                    ).toByteArray(),
             )
         }
     }

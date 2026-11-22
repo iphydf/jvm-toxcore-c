@@ -1,6 +1,5 @@
 package im.tox.tox4j.core
 
-import im.tox.tox4j.core.callbacks.ToxCoreEventAdapter
 import im.tox.tox4j.core.enums.ToxGroupPrivacyState
 import im.tox.tox4j.core.enums.ToxGroupRole
 import im.tox.tox4j.core.enums.ToxGroupTopicLock
@@ -64,7 +63,7 @@ class ToxCoreGroupTest {
             assertEquals(listOf(a, b), tox.groupList)
             tox.groupLeave(a, ByteArray(0))
             // toxcore removes a group it left on its next iteration.
-            tox.iterate(ToxCoreEventAdapter(), Unit)
+            tox.iterate()
             assertEquals(listOf(b), tox.groupList)
         }
     }
@@ -115,7 +114,7 @@ class ToxCoreGroupTest {
     fun selfGetPublicKey_hasExpectedSize() {
         ToxCoreImpl(options).use { tox ->
             val g = createPrivateGroup(tox)
-            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, tox.groupSelfGetPublicKey(g).value.size)
+            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, tox.groupSelfGetPublicKey(g).toByteArray().size)
         }
     }
 
@@ -131,7 +130,7 @@ class ToxCoreGroupTest {
     fun getChatId_hasExpectedLength() {
         ToxCoreImpl(options).use { tox ->
             val g = createPrivateGroup(tox)
-            assertEquals(32, tox.groupGetChatId(g).value.size)
+            assertEquals(32, tox.groupGetChatId(g).toByteArray().size)
         }
     }
 

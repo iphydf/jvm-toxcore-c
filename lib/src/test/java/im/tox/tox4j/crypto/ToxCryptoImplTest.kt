@@ -22,6 +22,18 @@ class ToxCryptoImplTest {
     fun passKeyDerive_succeeds() = ToxCryptoImpl.passKeyDerive(passphrase).use { }
 
     @Test
+    fun passKey_closed_reachesNoOtherKey() {
+        val old = ToxCryptoImpl.passKeyDerive(passphrase)
+        old.close()
+        ToxCryptoImpl.passKeyDerive("another passphrase".encodeToByteArray()).use { new ->
+            val ex = assertFailsWith<ToxEncryptionException> { ToxCryptoImpl.encrypt(old, plaintext) }
+            assertEquals(ToxEncryptionException.Code.NULL, ex.code)
+            old.close()
+            ToxCryptoImpl.encrypt(new, plaintext)
+        }
+    }
+
+    @Test
     fun passKeyDeriveWithSalt_isDeterministic() {
         val salt = ByteArray(ToxCryptoConstants.SALT_LENGTH) { it.toByte() }
         ToxCryptoImpl.passKeyDeriveWithSalt(passphrase, ToxPassSalt(salt)).use { a ->
@@ -160,7 +172,7 @@ class ToxCryptoImplTest {
         val salt = ByteArray(ToxCryptoConstants.SALT_LENGTH) { 7 }
         ToxCryptoImpl.passKeyDeriveWithSalt(passphrase, ToxPassSalt(salt)).use { key ->
             val cipher = ToxCryptoImpl.encrypt(key, plaintext)
-            assertContentEquals(salt, ToxCryptoImpl.getSalt(cipher).value)
+            assertContentEquals(salt, ToxCryptoImpl.getSalt(cipher).toByteArray())
         }
     }
 

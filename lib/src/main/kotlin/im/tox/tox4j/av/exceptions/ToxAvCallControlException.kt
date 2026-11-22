@@ -2,7 +2,9 @@ package im.tox.tox4j.av.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxAvCallControlException : ToxException {
+class ToxAvCallControlException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** Synchronization error occurred. */
         SYNC,
@@ -16,8 +18,4 @@ class ToxAvCallControlException : ToxException {
         /** Happens if user tried to pause an already paused call or if trying to resume a call that is not paused. */
         INVALID_TRANSITION,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

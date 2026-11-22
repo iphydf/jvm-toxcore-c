@@ -1,6 +1,6 @@
 package im.tox.tox4j.e2e
 
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.data.ToxFriendNumber
 import im.tox.tox4j.core.data.ToxGroupMessageId
 import im.tox.tox4j.core.data.ToxGroupNumber
@@ -28,123 +28,51 @@ object SubtestGroup {
             )
         alice.groupInviteFriend(aliceGroup, bobFromAlice)
 
-        data class Invite(
-            val friend: ToxFriendNumber,
-            val inviteData: ByteArray,
-        )
-        val inviteHandler =
-            object : ToxCoreEventListener<Invite?> {
-                override fun groupInvite(
-                    friendNumber: ToxFriendNumber,
-                    inviteData: ByteArray,
-                    groupName: ByteArray,
-                    state: Invite?,
-                ): Invite? = state ?: Invite(friendNumber, inviteData)
-            }
-        val invite =
-            harness.waitFor(
-                initial = null as Invite?,
-                handler = inviteHandler,
-                timeoutMs = 30_000L,
-                message = "Bob never received Alice's NGC invite",
-            ) { it != null }!!
-        check(invite.friend.value == aliceFromBob.value) {
-            "NGC invite came from an unexpected friend: ${invite.friend}"
+        val invite = harness.waitForEvent<ToxCoreEvent.GroupInvite>("Bob never received Alice's NGC invite")
+        check(invite.friendNumber == aliceFromBob) {
+            "NGC invite came from an unexpected friend: ${invite.friendNumber}"
         }
 
         val bobGroup =
             bob.groupInviteAccept(
-                invite.friend,
+                invite.friendNumber,
                 invite.inviteData,
                 "Bob".encodeToByteArray(),
                 ByteArray(0),
             )
 
         // Messages only arrive once the group connects, so resend until one does.
-        data class MsgState(
-            val received: ByteArray? = null,
-        )
-        val messageHandler =
-            object : ToxCoreEventListener<MsgState> {
-                override fun groupMessage(
-                    groupNumber: ToxGroupNumber,
-                    peerId: ToxGroupPeerNumber,
-                    messageType: ToxMessageType,
-                    message: ByteArray,
-                    messageId: ToxGroupMessageId,
-                    state: MsgState,
-                ): MsgState =
-                    if (state.received != null) {
-                        state
-                    } else if (groupNumber.value == bobGroup.value && message.contentEquals(payload)) {
-                        state.copy(received = message)
-                    } else {
-                        state
-                    }
-            }
-        val finalState =
+        val received =
             harness.waitFor(
-                initial = MsgState(),
-                handler = messageHandler,
+                initial = null as ToxCoreEvent.GroupMessage?,
+                handler = { found, event ->
+                    found
+                        ?: (event as? ToxCoreEvent.GroupMessage)?.takeIf { it.groupNumber == bobGroup && it.message.contentEquals(payload) }
+                },
                 timeoutMs = 60_000L,
                 message = "Bob never received Alice's NGC message",
-            ) { state ->
-                if (state.received == null) {
+            ) { found ->
+                if (found == null) {
                     try {
-                        alice.groupSendMessage(
-                            aliceGroup,
-                            ToxMessageType.NORMAL,
-                            payload,
-                        )
+                        alice.groupSendMessage(aliceGroup, ToxMessageType.NORMAL, payload)
                     } catch (_: Exception) {
                         // Not connected yet.
                     }
                 }
-                state.received != null
-            }
-        assertContentEquals(payload, finalState.received)
+                found != null
+            }!!
+        assertContentEquals(payload, received.message)
 
         val newTopic = "JVM NGC Topic".encodeToByteArray()
         alice.groupSetTopic(aliceGroup, newTopic)
-        val topicHandler =
-            object : ToxCoreEventListener<ByteArray?> {
-                override fun groupTopic(
-                    groupNumber: ToxGroupNumber,
-                    peerId: ToxGroupPeerNumber,
-                    topic: ByteArray,
-                    state: ByteArray?,
-                ): ByteArray? =
-                    state ?: topic.takeIf {
-                        groupNumber.value == bobGroup.value && topic.contentEquals(newTopic)
-                    }
-            }
-        val seenTopic =
-            harness.waitFor(
-                initial = null as ByteArray?,
-                handler = topicHandler,
-                timeoutMs = 30_000L,
-                message = "Bob never saw Alice's group topic change",
-            ) { it != null }
-        assertContentEquals(newTopic, seenTopic)
+        harness.waitForEvent<ToxCoreEvent.GroupTopic>("Bob never saw Alice's group topic change") {
+            it.groupNumber == bobGroup && it.topic.contentEquals(newTopic)
+        }
 
         val newName = "Alice2".encodeToByteArray()
         alice.groupSelfSetName(aliceGroup, newName)
-        val peerNameHandler =
-            object : ToxCoreEventListener<ByteArray?> {
-                override fun groupPeerName(
-                    groupNumber: ToxGroupNumber,
-                    peerId: ToxGroupPeerNumber,
-                    name: ByteArray,
-                    state: ByteArray?,
-                ): ByteArray? = state ?: name.takeIf { groupNumber.value == bobGroup.value && name.contentEquals(newName) }
-            }
-        val seenName =
-            harness.waitFor(
-                initial = null as ByteArray?,
-                handler = peerNameHandler,
-                timeoutMs = 30_000L,
-                message = "Bob never saw Alice's NGC nickname change",
-            ) { it != null }
-        assertContentEquals(newName, seenName)
+        harness.waitForEvent<ToxCoreEvent.GroupPeerName>("Bob never saw Alice's NGC nickname change") {
+            it.groupNumber == bobGroup && it.name.contentEquals(newName)
+        }
     }
 }

@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxFriendCustomPacketException : ToxException {
+class ToxFriendCustomPacketException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** One of the arguments to the function was null when it was not expected. */
         NULL,
@@ -25,8 +27,4 @@ class ToxFriendCustomPacketException : ToxException {
         /** Packet queue is full. */
         SENDQ,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

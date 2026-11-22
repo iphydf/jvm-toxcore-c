@@ -3,17 +3,21 @@ package im.tox.tox4j.core.data
 import im.tox.tox4j.crypto.ToxCryptoConstants
 
 class ToxHash(
-    val value: ByteArray,
+    bytes: ByteArray,
 ) {
     init {
-        require(value.size == ToxCryptoConstants.HASH_LENGTH) {
-            "ToxHash must be ${ToxCryptoConstants.HASH_LENGTH} bytes, got ${value.size}"
+        require(bytes.size == ToxCryptoConstants.HASH_LENGTH) {
+            "ToxHash must be ${ToxCryptoConstants.HASH_LENGTH} bytes, got ${bytes.size}"
         }
     }
 
-    override fun equals(other: Any?): Boolean = this === other || (other is ToxHash && value.contentEquals(other.value))
+    internal val bytes: ByteArray = bytes.copyOf()
 
-    override fun hashCode(): Int = value.contentHashCode()
+    fun toByteArray(): ByteArray = bytes.copyOf()
 
-    override fun toString(): String = "ToxHash(<${value.size} bytes>)"
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxHash && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = "ToxHash(<${bytes.size} bytes>)"
 }

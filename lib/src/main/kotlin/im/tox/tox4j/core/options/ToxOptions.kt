@@ -15,7 +15,6 @@ data class ToxOptions(
     val holePunchingEnabled: Boolean = true,
     val savedata: SavedataOptions.Type = SavedataOptions.None,
     val experimentalOwnedData: Boolean = false,
-    val experimentalThreadSafety: Boolean = false,
     val experimentalGroupsPersistence: Boolean = false,
     val experimentalDisableDns: Boolean = false,
 )

@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxConferenceSendMessageException : ToxException {
+class ToxConferenceSendMessageException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** The conference number passed did not designate a valid conference. */
         CONFERENCE_NOT_FOUND,
@@ -16,8 +18,4 @@ class ToxConferenceSendMessageException : ToxException {
         /** The message packet failed to send. */
         FAIL_SEND,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

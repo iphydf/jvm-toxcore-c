@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxGroupJoinException : ToxException {
+class ToxGroupJoinException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** The group instance failed to initialize. */
         INIT,
@@ -22,8 +24,4 @@ class ToxGroupJoinException : ToxException {
         /** There was a core error when initiating the group. */
         CORE,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

@@ -1,0 +1,128 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_kotlin//kotlin:core.bzl", "kt_compiler_plugin")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_binary", "kt_jvm_library", "kt_jvm_test")
+load("@rules_kotlin//kotlin:lint.bzl", "ktlint_fix", "ktlint_test")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+# kTox for desktops. Android still builds with Gradle.
+
+exports_files(["ktox_maven_install.json"])
+
+kt_compiler_plugin(
+    name = "compose_compiler",
+    id = "androidx.compose.compiler.plugins.kotlin",
+    target_embedded_compiler = True,
+    deps = ["@ktox_maven//:org_jetbrains_kotlin_kotlin_compose_compiler_plugin_embeddable"],
+)
+
+kt_jvm_library(
+    name = "shared",
+    srcs = glob(["shared/src/commonMain/kotlin/**/*.kt"]),
+    plugins = [":compose_compiler"],
+    tags = ["java"],
+    deps = [
+        "//jvm-toxcore-c",
+        "@ktox_maven//:androidx_sqlite_sqlite_bundled_jvm",
+        "@ktox_maven//:androidx_sqlite_sqlite_jvm",
+        "@ktox_maven//:com_google_zxing_core",
+        "@ktox_maven//:org_jetbrains_compose_foundation_foundation_desktop",
+        "@ktox_maven//:org_jetbrains_compose_material3_material3_desktop",
+        "@ktox_maven//:org_jetbrains_compose_material_material_icons_core_desktop",
+        "@ktox_maven//:org_jetbrains_compose_runtime_runtime_desktop",
+        "@ktox_maven//:org_jetbrains_compose_ui_ui_desktop",
+        "@ktox_maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core_jvm",
+    ],
+)
+
+# The webcam, on Linux.
+cc_binary(
+    name = "libktox-v4l2.so",
+    srcs = ["native/v4l2.c"],
+    linkshared = True,
+    tags = ["java"],
+    deps = ["@bazel_tools//tools/jdk:jni"],
+)
+
+kt_jvm_binary(
+    name = "ktox_jvm",
+    srcs = glob(["desktopApp/src/main/kotlin/**/*.kt"]),
+    data = [
+        ":libktox-v4l2.so",
+        "//jvm-toxcore-c:libtox4j-c.so",
+    ],
+    jvm_flags = ["-Djava.library.path=jvm-toxcore-c:jvm-toxcore-c/apps/client"],
+    main_class = "chat.tox.ktox.MainKt",
+    plugins = [":compose_compiler"],
+    resource_strip_prefix = "jvm-toxcore-c/apps/client/desktopApp/src/main/resources",
+    resources = glob(["desktopApp/src/main/resources/**"]),
+    tags = ["java"],
+    deps = [
+        ":shared",
+        "//jvm-toxcore-c",
+        "@ktox_maven//:org_jetbrains_compose_desktop_desktop_jvm_linux_x64",
+        "@ktox_maven//:org_jetbrains_compose_foundation_foundation_desktop",
+        "@ktox_maven//:org_jetbrains_compose_material3_material3_desktop",
+        "@ktox_maven//:org_jetbrains_compose_runtime_runtime_desktop",
+        "@ktox_maven//:org_jetbrains_compose_ui_ui_desktop",
+        "@ktox_maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core_jvm",
+        "@ktox_maven//:org_jetbrains_kotlinx_kotlinx_coroutines_swing",
+    ],
+)
+
+# bazel run //jvm-toxcore-c/apps/client:ktox -- [--profile DIR]
+sh_binary(
+    name = "ktox",
+    srcs = ["ktox.sh"],
+    args = [
+        "$(rootpath @jdk21//:java)",
+        "$(rootpath @libgl//:libGL)",
+        "$(rootpath :ktox_jvm)",
+    ],
+    data = [
+        ":ktox_jvm",
+        "@jdk21//:java",
+        "@libgl//:libGL",
+    ],
+    tags = [
+        "java",
+        "manual",
+    ],
+)
+
+[kt_jvm_test(
+    name = test,
+    size = size,
+    srcs = ["shared/src/jvmTest/kotlin/chat/tox/ktox/%s.kt" % test],
+    associates = [":shared"],
+    jvm_flags = ["-Djava.library.path=jvm-toxcore-c"],
+    tags = ["java"],
+    test_class = "chat.tox.ktox." + test,
+    deps = [
+        "//jvm-toxcore-c",
+        "@ktox_maven//:org_jetbrains_compose_runtime_runtime_desktop",
+        "@ktox_maven//:org_jetbrains_compose_ui_ui_desktop",
+        "@ktox_maven//:org_jetbrains_kotlin_kotlin_test_junit",
+        "@ktox_maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core_jvm",
+    ],
+) for test, size in [
+    ("SplitMessageTest", "medium"),
+    ("StoreTest", "medium"),
+    ("ToxClientTest", "enormous"),
+]]
+
+KT_SRCS = glob(["*/src/**/*.kt"])
+
+ktlint_fix(
+    name = "ktlint_fix",
+    srcs = KT_SRCS,
+    config = "//jvm-toxcore-c:ktlint_config",
+    tags = ["java"],
+)
+
+ktlint_test(
+    name = "ktlint_test",
+    size = "medium",
+    srcs = KT_SRCS,
+    config = "//jvm-toxcore-c:ktlint_config",
+    tags = ["java"],
+)

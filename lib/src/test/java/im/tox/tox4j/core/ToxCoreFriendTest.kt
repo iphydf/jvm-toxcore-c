@@ -12,7 +12,6 @@ import im.tox.tox4j.core.exceptions.ToxFriendQueryException
 import im.tox.tox4j.core.options.ToxOptions
 import im.tox.tox4j.impl.jni.ToxCoreImpl
 import kotlin.test.Test
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -96,7 +95,7 @@ class ToxCoreFriendTest {
     fun getFriendPublicKey_roundtrip() {
         withPeerKey { tox, key ->
             val n = tox.friendAddNorequest(key)
-            assertContentEquals(key.value, tox.friendGetPublicKey(n).value)
+            assertEquals(key, tox.friendGetPublicKey(n))
         }
     }
 

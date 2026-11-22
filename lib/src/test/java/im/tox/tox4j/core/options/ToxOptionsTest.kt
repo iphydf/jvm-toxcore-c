@@ -67,7 +67,7 @@ class ToxOptionsTest {
         val key = ToxSecretKey(ByteArray(ToxCoreConstants.SECRET_KEY_SIZE) { 7 })
         val save = SavedataOptions.SecretKey(key)
         assertEquals(ToxSavedataType.SECRET_KEY, save.savedataType)
-        assertContentEquals(key.value, save.savedata)
+        assertContentEquals(key.toByteArray(), save.savedata)
     }
 
     @Test

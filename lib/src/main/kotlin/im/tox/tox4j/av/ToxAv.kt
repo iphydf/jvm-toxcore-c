@@ -11,10 +11,7 @@ import im.tox.tox4j.core.data.ToxFriendNumber
 interface ToxAv : AutoCloseable {
     val iterationInterval: Int
 
-    fun <ToxCoreState> iterate(
-        handler: im.tox.tox4j.av.callbacks.ToxAvEventListener<ToxCoreState>,
-        state: ToxCoreState,
-    ): ToxCoreState
+    fun iterate(): List<ToxAvEvent>
 
     /**
      * Call a friend. This will start ringing the friend.

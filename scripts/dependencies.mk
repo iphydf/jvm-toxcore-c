@@ -3,7 +3,7 @@ POST_RULE = ls -ld $@
 
 GIT_CLONE = git clone --depth=1 --recurse-submodules --shallow-submodules
 
-$(BUILDDIR)/tox4j/Makefile: $(CURDIR)/lib/src/main/cpp/CMakeLists.txt $(TOOLCHAIN_FILE) $(foreach i,protobuf toxcore,$(PREFIX)/$i.stamp)
+$(BUILDDIR)/tox4j/Makefile: $(CURDIR)/lib/src/main/cpp/CMakeLists.txt $(TOOLCHAIN_FILE) $(PREFIX)/toxcore.stamp
 	@$(PRE_RULE)
 	mkdir -p $(@D)
 	cd $(@D) && cmake $(<D) $($(notdir $(@D))_CONFIGURE)
@@ -12,20 +12,6 @@ $(BUILDDIR)/tox4j/Makefile: $(CURDIR)/lib/src/main/cpp/CMakeLists.txt $(TOOLCHAI
 $(PREFIX)/tox4j.stamp: $(BUILDDIR)/tox4j/Makefile
 	@$(PRE_RULE)
 	$(MAKE) -C $(<D) install
-	mkdir -p $(@D) && touch $@
-	@$(POST_RULE)
-
-#############################################################################
-# protobuf
-
-$(SRCDIR)/protobuf:
-	$(GIT_CLONE) --branch=v3.24.4 https://github.com/protocolbuffers/protobuf $@
-
-$(PREFIX)/protobuf.stamp: $(SRCDIR)/protobuf $(TOOLCHAIN_FILE) $(PROTOC)
-	@$(PRE_RULE)
-	mkdir -p $(BUILDDIR)/$(notdir $<)
-	cd $(BUILDDIR)/$(notdir $<) && cmake $(SRCDIR)/$(notdir $<) $($(notdir $<)_CONFIGURE)
-	$(MAKE) -C $(BUILDDIR)/$(notdir $<) install
 	mkdir -p $(@D) && touch $@
 	@$(POST_RULE)
 

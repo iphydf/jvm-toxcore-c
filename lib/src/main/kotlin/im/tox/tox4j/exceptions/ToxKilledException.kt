@@ -5,6 +5,6 @@ package im.tox.tox4j.exceptions
  *
  * @author Simon Levermann (sonOfRa)
  */
-class ToxKilledException : RuntimeException {
-    constructor(message: String) : super(message)
-}
+class ToxKilledException(
+    message: String,
+) : RuntimeException(message)

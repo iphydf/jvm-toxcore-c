@@ -1,6 +1,6 @@
 package im.tox.tox4j.e2e
 
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.data.ToxConferenceNumber
 import im.tox.tox4j.core.data.ToxConferencePeerNumber
 import im.tox.tox4j.core.data.ToxFriendNumber
@@ -23,92 +23,40 @@ object SubtestConference {
         val aliceConf = alice.conferenceNew()
         alice.conferenceInvite(bobFromAlice, aliceConf)
 
-        data class Invite(
-            val friend: ToxFriendNumber,
-            val cookie: ByteArray,
-        )
-        val inviteHandler =
-            object : ToxCoreEventListener<Invite?> {
-                override fun conferenceInvite(
-                    friendNumber: ToxFriendNumber,
-                    type: ToxConferenceType,
-                    cookie: ByteArray,
-                    state: Invite?,
-                ): Invite? = state ?: Invite(friendNumber, cookie)
-            }
-        val invite =
-            harness.waitFor(
-                initial = null as Invite?,
-                handler = inviteHandler,
-                timeoutMs = 30_000L,
-                message = "Bob never received Alice's conference invite",
-            ) { it != null }!!
-        check(invite.friend.value == aliceFromBob.value) {
-            "Conference invite came from an unexpected friend: ${invite.friend}"
+        val invite = harness.waitForEvent<ToxCoreEvent.ConferenceInvite>("Bob never received Alice's conference invite")
+        check(invite.friendNumber == aliceFromBob) {
+            "Conference invite came from an unexpected friend: ${invite.friendNumber}"
         }
 
-        val bobConf = bob.conferenceJoin(invite.friend, invite.cookie)
+        val bobConf = bob.conferenceJoin(invite.friendNumber, invite.cookie)
 
         // Messages only arrive once the conference connects, so resend until one does.
-        data class MsgState(
-            val received: ByteArray? = null,
-        )
-        val messageHandler =
-            object : ToxCoreEventListener<MsgState> {
-                override fun conferenceMessage(
-                    conferenceNumber: ToxConferenceNumber,
-                    peerNumber: ToxConferencePeerNumber,
-                    type: ToxMessageType,
-                    message: ByteArray,
-                    state: MsgState,
-                ): MsgState =
-                    if (state.received != null) {
-                        state
-                    } else if (conferenceNumber.value == bobConf.value && message.contentEquals(payload)) {
-                        state.copy(received = message)
-                    } else {
-                        state
-                    }
-            }
-        val finalState =
+        val received =
             harness.waitFor(
-                initial = MsgState(),
-                handler = messageHandler,
-                timeoutMs = 30_000L,
+                initial = null as ToxCoreEvent.ConferenceMessage?,
+                handler = { found, event ->
+                    found
+                        ?: (event as? ToxCoreEvent.ConferenceMessage)?.takeIf {
+                            it.conferenceNumber == bobConf &&
+                                it.message.contentEquals(payload)
+                        }
+                },
                 message = "Bob never received Alice's conference message",
-            ) { state ->
-                if (state.received == null) {
+            ) { found ->
+                if (found == null) {
                     try {
-                        alice.conferenceSendMessage(
-                            aliceConf,
-                            ToxMessageType.NORMAL,
-                            payload,
-                        )
+                        alice.conferenceSendMessage(aliceConf, ToxMessageType.NORMAL, payload)
                     } catch (_: Exception) {
                         // Not connected yet.
                     }
                 }
-                state.received != null
-            }
-        assertContentEquals(payload, finalState.received)
+                found != null
+            }!!
+        assertContentEquals(payload, received.message)
 
         alice.conferenceSetTitle(aliceConf, newTitle)
-        val titleHandler =
-            object : ToxCoreEventListener<ByteArray?> {
-                override fun conferenceTitle(
-                    conferenceNumber: ToxConferenceNumber,
-                    peerNumber: ToxConferencePeerNumber,
-                    title: ByteArray,
-                    state: ByteArray?,
-                ): ByteArray? = state ?: title.takeIf { conferenceNumber.value == bobConf.value && title.contentEquals(newTitle) }
-            }
-        val seenTitle =
-            harness.waitFor(
-                initial = null as ByteArray?,
-                handler = titleHandler,
-                timeoutMs = 30_000L,
-                message = "Bob never saw Alice's conference title change",
-            ) { it != null }
-        assertContentEquals(newTitle, seenTitle)
+        harness.waitForEvent<ToxCoreEvent.ConferenceTitle>("Bob never saw Alice's conference title change") {
+            it.conferenceNumber == bobConf && it.title.contentEquals(newTitle)
+        }
     }
 }

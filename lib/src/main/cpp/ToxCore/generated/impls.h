@@ -670,16 +670,9 @@ JAVA_METHOD (jbyteArray, toxIterate,
   return instances.with_instance (env, instanceNumber,
     [=] (Tox *self, Events &events) -> jbyteArray
       {
-        tox_iterate(self, &events);
-        if (events.ByteSizeLong () == 0)
-          return nullptr;
-
-        std::vector<char> buffer (events.ByteSizeLong ());
-        if (!events.SerializeToArray (buffer.data (), buffer.size ()))
-          return nullptr;
-        events.Clear ();
-
-        return toJavaArray (env, buffer);
+        tox_iterate (self, &events);
+        std::vector<uint8_t> taken = events.take ();
+        return taken.empty () ? nullptr : toJavaArray (env, taken);
       }
   );
 }

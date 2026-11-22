@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxEventsIterateException : ToxException {
+class ToxEventsIterateException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /**
          * The function failed to allocate enough memory to store the events.
@@ -11,8 +13,4 @@ class ToxEventsIterateException : ToxException {
          */
         MALLOC,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

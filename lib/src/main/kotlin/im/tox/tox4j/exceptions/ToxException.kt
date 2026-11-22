@@ -1,13 +1,8 @@
 package im.tox.tox4j.exceptions
 
+/** Each subclass has its own `Code` enum, so `when (e.code)` can cover every code. */
 abstract class ToxException(
-    val code: Enum<*>,
-    private val extraMessage: String,
-) : Exception(extraMessage) {
-    final override val message: String
-        get() =
-            when (extraMessage) {
-                "" -> "Error code: " + code.name
-                else -> extraMessage + ", error code: " + code.name
-            }
+    code: Enum<*>,
+) : Exception("Error code: ${code.name}") {
+    abstract val code: Enum<*>
 }

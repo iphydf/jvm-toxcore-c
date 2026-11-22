@@ -2,7 +2,9 @@ package im.tox.tox4j.av.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxAvSendFrameException : ToxException {
+class ToxAvSendFrameException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** In case of video, one of Y, U, or V was null. In case of audio, the samples data pointer was null. */
         NULL,
@@ -25,8 +27,4 @@ class ToxAvSendFrameException : ToxException {
         /** Failed to push frame through RTP interface. */
         RTP_FAILED,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

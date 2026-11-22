@@ -1,6 +1,5 @@
 plugins {
     kotlin("jvm") version "2.3.21"
-    id("com.google.protobuf") version "0.10.0"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -17,17 +16,8 @@ repositories {
     mavenCentral()
 }
 
-val protobufVersion = "4.35.0"
-
 dependencies {
-    implementation("com.google.protobuf:protobuf-java:$protobufVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-}
-
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:$protobufVersion"
-    }
 }
 
 testing {

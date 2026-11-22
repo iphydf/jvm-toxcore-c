@@ -3,17 +3,21 @@ package im.tox.tox4j.core.data
 import im.tox.tox4j.core.ToxCoreConstants
 
 class ToxGroupChatId(
-    val value: ByteArray,
+    bytes: ByteArray,
 ) {
     init {
-        require(value.size == ToxCoreConstants.GROUP_CHAT_ID_SIZE) {
-            "ToxGroupChatId must be ${ToxCoreConstants.GROUP_CHAT_ID_SIZE} bytes, got ${value.size}"
+        require(bytes.size == ToxCoreConstants.GROUP_CHAT_ID_SIZE) {
+            "ToxGroupChatId must be ${ToxCoreConstants.GROUP_CHAT_ID_SIZE} bytes, got ${bytes.size}"
         }
     }
 
-    override fun equals(other: Any?): Boolean = this === other || (other is ToxGroupChatId && value.contentEquals(other.value))
+    internal val bytes: ByteArray = bytes.copyOf()
 
-    override fun hashCode(): Int = value.contentHashCode()
+    fun toByteArray(): ByteArray = bytes.copyOf()
 
-    override fun toString(): String = "ToxGroupChatId(<${value.size} bytes>)"
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxGroupChatId && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = "ToxGroupChatId(<${bytes.size} bytes>)"
 }

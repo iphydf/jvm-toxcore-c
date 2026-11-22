@@ -570,10 +570,10 @@ JNIEXPORT jbyteArray JNICALL Java_im_tox_tox4j_impl_jni_ToxCoreJni_toxGroupPeerG
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxCoreJni
  * Method:    toxNew
- * Signature: ([B)I
+ * Signature: (ZZZZILjava/lang/String;IIIIZI[BZZZ)I
  */
 JNIEXPORT jint JNICALL Java_im_tox_tox4j_impl_jni_ToxCoreJni_toxNew
-  (JNIEnv *, jclass, jbyteArray);
+  (JNIEnv *, jclass, jboolean, jboolean, jboolean, jboolean, jint, jstring, jint, jint, jint, jint, jboolean, jint, jbyteArray, jboolean, jboolean, jboolean);
 
 /*
  * Class:     im_tox_tox4j_impl_jni_ToxCoreJni

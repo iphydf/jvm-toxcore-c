@@ -1,6 +1,7 @@
 #pragma once
 
-#include "tox/common.h"
+#include <memory>
+
 #include <tox/tox.h>
 #include <tox/tox_events.h>
 
@@ -26,13 +27,4 @@ namespace tox
   };
 
   typedef std::unique_ptr<Tox_Options, options_deleter> options_ptr;
-
-#define CALLBACK(CB) \
-  inline void tox_callback_##CB(Tox *tox, tox_##CB##_cb *callback, void *) \
-  { \
-    ::tox_callback_##CB(tox, callback); \
-  } \
-  using callback_##CB = detail::cb<Tox, tox_##CB##_cb, tox_callback_##CB>;
-#include "generated/core.h"
-#undef CALLBACK
 }

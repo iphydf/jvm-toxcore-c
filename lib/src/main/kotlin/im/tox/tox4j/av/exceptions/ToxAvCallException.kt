@@ -2,7 +2,9 @@ package im.tox.tox4j.av.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxAvCallException : ToxException {
+class ToxAvCallException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** A resource allocation error occurred while trying to create the structures required for the call. */
         MALLOC,
@@ -22,8 +24,4 @@ class ToxAvCallException : ToxException {
         /** Audio or video bit rate is invalid. */
         INVALID_BIT_RATE,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

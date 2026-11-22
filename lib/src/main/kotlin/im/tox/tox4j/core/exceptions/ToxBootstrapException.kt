@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxBootstrapException : ToxException {
+class ToxBootstrapException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** One of the arguments to the function was null when it was not expected. */
         NULL,
@@ -13,8 +15,4 @@ class ToxBootstrapException : ToxException {
         /** The port passed was invalid. The valid port range is (1, 65535). */
         BAD_PORT,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

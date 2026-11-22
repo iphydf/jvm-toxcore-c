@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxGroupNewException : ToxException {
+class ToxGroupNewException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** name exceeds [ToxCoreConstants.MAX_NAME_LENGTH] or group_name exceeded [ToxCoreConstants.GROUP_MAX_GROUP_NAME_LENGTH]. */
         TOO_LONG,
@@ -19,8 +21,4 @@ class ToxGroupNewException : ToxException {
         /** The group failed to announce to the DHT. This indicates a network related error. */
         ANNOUNCE,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

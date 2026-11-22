@@ -2,7 +2,9 @@ package im.tox.tox4j.av.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxAvAnswerException : ToxException {
+class ToxAvAnswerException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** Synchronization error occurred. */
         SYNC,
@@ -19,8 +21,4 @@ class ToxAvAnswerException : ToxException {
         /** Audio or video bit rate is invalid. */
         INVALID_BIT_RATE,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

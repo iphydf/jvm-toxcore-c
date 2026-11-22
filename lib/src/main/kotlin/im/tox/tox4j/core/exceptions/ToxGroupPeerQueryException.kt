@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxGroupPeerQueryException : ToxException {
+class ToxGroupPeerQueryException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** The group number passed did not designate a valid group. */
         GROUP_NOT_FOUND,
@@ -10,8 +12,4 @@ class ToxGroupPeerQueryException : ToxException {
         /** The ID passed did not designate a valid peer. */
         PEER_NOT_FOUND,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

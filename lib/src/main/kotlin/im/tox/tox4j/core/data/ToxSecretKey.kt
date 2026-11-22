@@ -3,17 +3,21 @@ package im.tox.tox4j.core.data
 import im.tox.tox4j.core.ToxCoreConstants
 
 class ToxSecretKey(
-    val value: ByteArray,
+    bytes: ByteArray,
 ) {
     init {
-        require(value.size == ToxCoreConstants.SECRET_KEY_SIZE) {
-            "ToxSecretKey must be ${ToxCoreConstants.SECRET_KEY_SIZE} bytes, got ${value.size}"
+        require(bytes.size == ToxCoreConstants.SECRET_KEY_SIZE) {
+            "ToxSecretKey must be ${ToxCoreConstants.SECRET_KEY_SIZE} bytes, got ${bytes.size}"
         }
     }
 
-    override fun equals(other: Any?): Boolean = this === other || (other is ToxSecretKey && value.contentEquals(other.value))
+    internal val bytes: ByteArray = bytes.copyOf()
 
-    override fun hashCode(): Int = value.contentHashCode()
+    fun toByteArray(): ByteArray = bytes.copyOf()
 
-    override fun toString(): String = "ToxSecretKey(<${value.size} bytes>)"
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxSecretKey && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = "ToxSecretKey(<${bytes.size} bytes>)"
 }

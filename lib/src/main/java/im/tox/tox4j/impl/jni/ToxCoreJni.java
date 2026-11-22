@@ -131,7 +131,7 @@ public final class ToxCoreJni {
     static native int toxGroupPeerGetRole(int instanceNumber, int groupNumber, int peerNumber) throws ToxGroupPeerQueryException;
     static native int toxGroupPeerGetConnectionStatus(int instanceNumber, int groupNumber, int peerNumber) throws ToxGroupPeerQueryException;
     static native byte[] toxGroupPeerGetPublicKey(int instanceNumber, int groupNumber, int peerNumber) throws ToxGroupPeerQueryException;
-    static native int toxNew(byte[] options) throws ToxNewException;
+    static native int toxNew(boolean ipv6Enabled, boolean udpEnabled, boolean localDiscoveryEnabled, boolean dhtAnnouncementsEnabled, int proxyType, String proxyHost, int proxyPort, int startPort, int endPort, int tcpPort, boolean holePunchingEnabled, int savedataType, byte[] savedata, boolean experimentalOwnedData, boolean experimentalGroupsPersistence, boolean experimentalDisableDns) throws ToxNewException;
     static native void toxKill(int instanceNumber);
     static native byte[] toxGetSavedata(int instanceNumber);
     static native void toxBootstrap(int instanceNumber, String host, int port, byte[] publicKey) throws ToxBootstrapException;

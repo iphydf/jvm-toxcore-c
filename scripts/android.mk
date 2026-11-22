@@ -5,7 +5,6 @@ TOOLCHAIN	:= $(NDK_HOME)/toolchains/llvm/prebuilt/linux-x86_64
 SYSROOT		:= $(TOOLCHAIN)/sysroot
 PREFIX		:= $(DESTDIR)/$(TARGET)
 TOOLCHAIN_FILE	:= $(SRCDIR)/$(TARGET).cmake
-PROTOC		:= $(DESTDIR)/host/bin/protoc
 
 export CC		:= $(TOOLCHAIN)/bin/$(TARGET)$(NDK_API)-clang
 export CXX		:= $(TOOLCHAIN)/bin/$(TARGET)$(NDK_API)-clang++
@@ -15,7 +14,6 @@ export PKG_CONFIG_PATH	:= $(PREFIX)/lib/pkgconfig
 export PATH		:= $(TOOLCHAIN)/bin:$(PATH)
 export TOX4J_PLATFORM	:= $(TARGET)
 
-protobuf_CONFIGURE	:= --prefix=$(PREFIX) --host=$(TARGET) --with-sysroot=$(SYSROOT) --disable-shared --with-protoc=$(PROTOC)
 libsodium_CONFIGURE	:= --prefix=$(PREFIX) --host=$(TARGET) --with-sysroot=$(SYSROOT) --disable-shared
 opus_CONFIGURE		:= --prefix=$(PREFIX) --host=$(TARGET) --with-sysroot=$(SYSROOT) --disable-shared
 libvpx_CONFIGURE	:= --prefix=$(PREFIX) --sdk-path=$(NDK_HOME) --libc=$(SYSROOT) --target=$(VPX_ARCH) --disable-examples --disable-unit-tests --enable-pic

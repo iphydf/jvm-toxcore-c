@@ -1,0 +1,5 @@
+root = true
+
+[*.{kt,kts}]
+# Compose functions are named after the UI they make, like classes.
+ktlint_function_naming_ignore_when_annotated_with = Composable

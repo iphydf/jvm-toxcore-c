@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxFileSendException : ToxException {
+class ToxFileSendException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** One of the arguments to the function was null when it was not expected. */
         NULL,
@@ -19,8 +21,4 @@ class ToxFileSendException : ToxException {
         /** Too many ongoing transfers. The maximum number of concurrent file transfers is 256 per friend per direction (sending and receiving). */
         TOO_MANY,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

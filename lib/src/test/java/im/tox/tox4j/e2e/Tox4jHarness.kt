@@ -1,6 +1,6 @@
 package im.tox.tox4j.e2e
 
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.data.ToxFriendNumber
 import im.tox.tox4j.core.data.ToxPort
 import im.tox.tox4j.core.data.ToxPublicKey
@@ -15,6 +15,9 @@ class Tox4jHarness(
     private val baseOptions: ToxOptions = ToxOptions(localDiscoveryEnabled = false),
 ) : AutoCloseable {
     private val managed: MutableList<ToxCoreImpl> = mutableListOf()
+
+    /** Each tox's friends that are online, as their events said. */
+    private val online = mutableMapOf<ToxCoreImpl, MutableSet<ToxFriendNumber>>()
 
     val toxes: List<ToxCoreImpl> get() = managed
 
@@ -41,26 +44,19 @@ class Tox4jHarness(
         managed[j].bootstrap("127.0.0.1", portI, dhtKeyI)
     }
 
-    fun <S> iterate(
-        handler: ToxCoreEventListener<S>,
-        state: S,
-    ): S {
-        // Else minInterval stays Int.MAX_VALUE and we'd sleep for weeks.
-        if (managed.isEmpty()) return state
-        var s = state
-        var minInterval = Int.MAX_VALUE
-        for (tox in managed) {
-            s = tox.iterate(handler, s)
-            val interval = tox.iterationInterval
-            if (interval < minInterval) minInterval = interval
-        }
-        sleep(minInterval.coerceAtLeast(5).toLong())
-        return s
+    /** Every tox's events from one iteration, then a sleep. */
+    fun iterate(): List<ToxCoreEvent> {
+        // minOf needs a tox.
+        if (managed.isEmpty()) return emptyList()
+        val events = managed.flatMap { tox -> tox.iterate().onEach { remember(tox, it) } }
+        sleep(managed.minOf { it.iterationInterval }.coerceAtLeast(5).toLong())
+        return events
     }
 
+    /** Folds every tox's events into a state until it's what [predicate] wants. */
     fun <S> waitFor(
         initial: S,
-        handler: ToxCoreEventListener<S>,
+        handler: (S, ToxCoreEvent) -> S,
         timeoutMs: Long = 30_000L,
         message: String = "waitFor timed out after ${timeoutMs}ms",
         predicate: (S) -> Boolean,
@@ -68,33 +64,43 @@ class Tox4jHarness(
         val deadline = System.currentTimeMillis() + timeoutMs
         var state = initial
         while (System.currentTimeMillis() < deadline) {
-            state = iterate(handler, state)
+            state = iterate().fold(state, handler)
             if (predicate(state)) return state
         }
         throw AssertionError(message)
     }
+
+    private fun remember(
+        tox: ToxCoreImpl,
+        event: ToxCoreEvent,
+    ) {
+        if (event !is ToxCoreEvent.FriendConnectionStatus) return
+        val friends = online.getOrPut(tox) { mutableSetOf() }
+        if (event.connectionStatus == ToxConnection.NONE) friends -= event.friendNumber else friends += event.friendNumber
+    }
+
+    /** The first [E] from any tox that [accept] takes. */
+    inline fun <reified E : ToxCoreEvent> waitForEvent(
+        message: String,
+        timeoutMs: Long = 30_000L,
+        crossinline accept: (E) -> Boolean = { true },
+    ): E =
+        waitFor(
+            initial = null as E?,
+            handler = { found, event -> found ?: (event as? E)?.takeIf { accept(it) } },
+            timeoutMs = timeoutMs,
+            message = message,
+        ) { it != null }!!
 
     fun waitForFriendConnected(
         i: Int,
         j: Int,
         timeoutMs: Long = 30_000L,
     ) {
-        val pkJ = publicKey(j)
-        val friendNumberJ = managed[i].friendByPublicKey(pkJ)
-        val handler =
-            object : ToxCoreEventListener<Boolean> {
-                override fun friendConnectionStatus(
-                    friendNumber: ToxFriendNumber,
-                    connectionStatus: ToxConnection,
-                    state: Boolean,
-                ): Boolean = state || (friendNumber.value == friendNumberJ.value && connectionStatus != ToxConnection.NONE)
-            }
-        waitFor(
-            initial = false,
-            handler = handler,
-            timeoutMs = timeoutMs,
-            message = "tox $i never saw tox $j as connected within ${timeoutMs}ms",
-        ) { it }
+        val friendNumberJ = managed[i].friendByPublicKey(publicKey(j))
+        waitFor(Unit, { state, _ -> state }, timeoutMs, "tox $i never saw tox $j as connected within ${timeoutMs}ms") {
+            online[managed[i]]?.contains(friendNumberJ) == true
+        }
     }
 
     override fun close() {

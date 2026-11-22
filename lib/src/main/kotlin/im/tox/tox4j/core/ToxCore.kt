@@ -30,10 +30,7 @@ import im.tox.tox4j.core.enums.ToxUserStatus
 interface ToxCore : AutoCloseable {
     val iterationInterval: Int
 
-    fun <ToxCoreState> iterate(
-        handler: im.tox.tox4j.core.callbacks.ToxCoreEventListener<ToxCoreState>,
-        state: ToxCoreState,
-    ): ToxCoreState
+    fun iterate(): List<ToxCoreEvent>
 
     /**
      * Creates a new conference.

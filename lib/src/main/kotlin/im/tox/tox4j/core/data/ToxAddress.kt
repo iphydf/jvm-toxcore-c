@@ -3,17 +3,21 @@ package im.tox.tox4j.core.data
 import im.tox.tox4j.core.ToxCoreConstants
 
 class ToxAddress(
-    val value: ByteArray,
+    bytes: ByteArray,
 ) {
     init {
-        require(value.size == ToxCoreConstants.ADDRESS_SIZE) {
-            "ToxAddress must be ${ToxCoreConstants.ADDRESS_SIZE} bytes, got ${value.size}"
+        require(bytes.size == ToxCoreConstants.ADDRESS_SIZE) {
+            "ToxAddress must be ${ToxCoreConstants.ADDRESS_SIZE} bytes, got ${bytes.size}"
         }
     }
 
-    override fun equals(other: Any?): Boolean = this === other || (other is ToxAddress && value.contentEquals(other.value))
+    internal val bytes: ByteArray = bytes.copyOf()
 
-    override fun hashCode(): Int = value.contentHashCode()
+    fun toByteArray(): ByteArray = bytes.copyOf()
 
-    override fun toString(): String = "ToxAddress(<${value.size} bytes>)"
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxAddress && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = "ToxAddress(<${bytes.size} bytes>)"
 }

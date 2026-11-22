@@ -1,6 +1,5 @@
 package im.tox.tox4j.av
 
-import im.tox.tox4j.av.callbacks.ToxAvEventListener
 import im.tox.tox4j.core.options.ToxOptions
 import im.tox.tox4j.exceptions.ToxKilledException
 import im.tox.tox4j.impl.jni.ToxAvImpl
@@ -12,8 +11,6 @@ import kotlin.test.assertTrue
 
 class ToxAvLifecycleTest {
     private val options = ToxOptions(localDiscoveryEnabled = false)
-
-    private object Noop : ToxAvEventListener<Int>
 
     @Test
     fun construct_succeeds() {
@@ -39,10 +36,10 @@ class ToxAvLifecycleTest {
     }
 
     @Test
-    fun iterate_noOp_returnsState() {
+    fun iterate_withoutCalls_reportsNothing() {
         ToxCoreImpl(options).use { tox ->
             ToxAvImpl(tox).use { av ->
-                assertEquals(99, av.iterate(Noop, 99))
+                assertEquals(emptyList(), av.iterate())
             }
         }
     }
@@ -52,7 +49,7 @@ class ToxAvLifecycleTest {
         ToxCoreImpl(options).use { tox ->
             val av = ToxAvImpl(tox)
             av.close()
-            assertFailsWith<ToxKilledException> { av.iterate(Noop, 0) }
+            assertFailsWith<ToxKilledException> { av.iterate() }
         }
     }
 

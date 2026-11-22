@@ -99,7 +99,7 @@ class ToxCoreConferencePeerTest {
         ToxCoreImpl(options).use { tox ->
             val conf = tox.conferenceNew()
             val key = tox.conferencePeerGetPublicKey(conf, ToxConferencePeerNumber(0))
-            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, key.value.size)
+            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, key.toByteArray().size)
         }
     }
 

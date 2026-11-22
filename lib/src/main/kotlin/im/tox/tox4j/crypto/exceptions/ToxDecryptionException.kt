@@ -2,7 +2,9 @@ package im.tox.tox4j.crypto.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxDecryptionException : ToxException {
+class ToxDecryptionException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** One of the arguments to the function was null when it was not expected. */
         NULL,
@@ -19,8 +21,4 @@ class ToxDecryptionException : ToxException {
         /** The encrypted byte array could not be decrypted. Either the data was corrupted or the password/key was incorrect. */
         FAILED,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

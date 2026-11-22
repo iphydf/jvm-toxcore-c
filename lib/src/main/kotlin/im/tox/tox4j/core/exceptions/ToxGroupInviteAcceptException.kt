@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxGroupInviteAcceptException : ToxException {
+class ToxGroupInviteAcceptException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** The invite data is not in the expected format. */
         BAD_INVITE,
@@ -28,8 +30,4 @@ class ToxGroupInviteAcceptException : ToxException {
         /** Invite data or name is null. */
         NULL,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxConferenceJoinException : ToxException {
+class ToxConferenceJoinException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** The cookie passed has an invalid length. */
         INVALID_LENGTH,
@@ -25,8 +27,4 @@ class ToxConferenceJoinException : ToxException {
         /** The cookie passed was null. */
         NULL,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

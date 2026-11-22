@@ -1,7 +1,6 @@
 package im.tox.tox4j.e2e
 
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
-import im.tox.tox4j.core.data.ToxFriendNumber
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.enums.ToxUserStatus
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -16,71 +15,31 @@ object SubtestFriendInfo {
         val bobFromAlice = alice.friendByPublicKey(bob.publicKey)
 
         alice.setTyping(bobFromAlice, true)
-        val typingHandler =
-            object : ToxCoreEventListener<Boolean> {
-                override fun friendTyping(
-                    friendNumber: ToxFriendNumber,
-                    typing: Boolean,
-                    state: Boolean,
-                ): Boolean = state || (friendNumber.value == aliceFromBob.value && typing)
-            }
-        harness.waitFor(
-            initial = false,
-            handler = typingHandler,
-            message = "Bob never saw Alice's typing status",
-        ) { it }
+        harness.waitForEvent<ToxCoreEvent.FriendTyping>("Bob never saw Alice's typing status") {
+            it.friendNumber == aliceFromBob && it.typing
+        }
 
         alice.setStatus(ToxUserStatus.BUSY)
-        val statusHandler =
-            object : ToxCoreEventListener<ToxUserStatus?> {
-                override fun friendStatus(
-                    friendNumber: ToxFriendNumber,
-                    status: ToxUserStatus,
-                    state: ToxUserStatus?,
-                ): ToxUserStatus? = state ?: status.takeIf { friendNumber.value == aliceFromBob.value }
+        val status =
+            harness.waitForEvent<ToxCoreEvent.FriendStatus>("Bob never saw Alice's status change") {
+                it.friendNumber == aliceFromBob
             }
-        val seenStatus =
-            harness.waitFor(
-                initial = null as ToxUserStatus?,
-                handler = statusHandler,
-                message = "Bob never saw Alice's status change",
-            ) { it != null }
-        assertEquals(ToxUserStatus.BUSY, seenStatus)
+        assertEquals(ToxUserStatus.BUSY, status.status)
 
-        val statusMsg = "Busy coding".encodeToByteArray()
-        alice.setStatusMessage(statusMsg)
-        val statusMsgHandler =
-            object : ToxCoreEventListener<ByteArray?> {
-                override fun friendStatusMessage(
-                    friendNumber: ToxFriendNumber,
-                    message: ByteArray,
-                    state: ByteArray?,
-                ): ByteArray? = state ?: message.takeIf { friendNumber.value == aliceFromBob.value }
+        val statusMessage = "Busy coding".encodeToByteArray()
+        alice.setStatusMessage(statusMessage)
+        val seenStatusMessage =
+            harness.waitForEvent<ToxCoreEvent.FriendStatusMessage>("Bob never saw Alice's status message") {
+                it.friendNumber == aliceFromBob
             }
-        val seenMsg =
-            harness.waitFor(
-                initial = null as ByteArray?,
-                handler = statusMsgHandler,
-                message = "Bob never saw Alice's status message",
-            ) { it != null }
-        assertContentEquals(statusMsg, seenMsg)
+        assertContentEquals(statusMessage, seenStatusMessage.message)
 
-        val nick = "Alice".encodeToByteArray()
-        alice.setName(nick)
-        val nameHandler =
-            object : ToxCoreEventListener<ByteArray?> {
-                override fun friendName(
-                    friendNumber: ToxFriendNumber,
-                    name: ByteArray,
-                    state: ByteArray?,
-                ): ByteArray? = state ?: name.takeIf { friendNumber.value == aliceFromBob.value }
-            }
+        val name = "Alice".encodeToByteArray()
+        alice.setName(name)
         val seenName =
-            harness.waitFor(
-                initial = null as ByteArray?,
-                handler = nameHandler,
-                message = "Bob never saw Alice's name change",
-            ) { it != null }
-        assertContentEquals(nick, seenName)
+            harness.waitForEvent<ToxCoreEvent.FriendName>("Bob never saw Alice's name change") {
+                it.friendNumber == aliceFromBob
+            }
+        assertContentEquals(name, seenName.name)
     }
 }

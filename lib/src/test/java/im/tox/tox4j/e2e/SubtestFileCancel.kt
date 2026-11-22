@@ -1,7 +1,7 @@
 package im.tox.tox4j.e2e
 
 import im.tox.tox4j.core.ToxCoreConstants
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.data.ToxFileId
 import im.tox.tox4j.core.data.ToxFileNumber
 import im.tox.tox4j.core.data.ToxFriendNumber
@@ -33,37 +33,37 @@ object SubtestFileCancel {
         )
 
         val handler =
-            object : ToxCoreEventListener<State> {
-                override fun fileRecv(
-                    friendNumber: ToxFriendNumber,
-                    fileNumber: ToxFileNumber,
-                    kind: Int,
-                    fileSize: Long,
-                    filename: ByteArray,
-                    state: State,
-                ): State =
-                    if (state.bobFileNumber == null && friendNumber.value == aliceFromBob.value) {
-                        bob.fileControl(friendNumber, fileNumber, ToxFileControl.RESUME)
-                        state.copy(bobFileNumber = fileNumber)
-                    } else {
-                        state
+            { state: State, event: ToxCoreEvent ->
+                when (event) {
+                    is ToxCoreEvent.FileRecv -> {
+                        with(event) {
+                            if (state.bobFileNumber == null && friendNumber == aliceFromBob) {
+                                bob.fileControl(friendNumber, fileNumber, ToxFileControl.RESUME)
+                                state.copy(bobFileNumber = fileNumber)
+                            } else {
+                                state
+                            }
+                        }
                     }
 
-                override fun fileRecvControl(
-                    friendNumber: ToxFriendNumber,
-                    fileNumber: ToxFileNumber,
-                    control: ToxFileControl,
-                    state: State,
-                ): State =
-                    if (state.bobFileNumber != null &&
-                        friendNumber.value == aliceFromBob.value &&
-                        fileNumber == state.bobFileNumber &&
-                        control == ToxFileControl.CANCEL
-                    ) {
-                        state.copy(canceled = true)
-                    } else {
+                    is ToxCoreEvent.FileRecvControl -> {
+                        with(event) {
+                            if (state.bobFileNumber != null &&
+                                friendNumber == aliceFromBob &&
+                                fileNumber == state.bobFileNumber &&
+                                control == ToxFileControl.CANCEL
+                            ) {
+                                state.copy(canceled = true)
+                            } else {
+                                state
+                            }
+                        }
+                    }
+
+                    else -> {
                         state
                     }
+                }
             }
 
         val finished =

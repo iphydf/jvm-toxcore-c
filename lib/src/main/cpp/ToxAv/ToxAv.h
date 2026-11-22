@@ -1,9 +1,6 @@
 // Instance manager, JNI utilities.
 #include "tox4j/Tox4j.h"
 
-// Protobuf classes.
-#include "Av.pb.h"
-
 // JNI declarations from javah.
 #include "generated/im_tox_tox4j_impl_jni_ToxAvJni.h"
 
@@ -21,9 +18,7 @@ void reference_symbols_av ();
 
 namespace av
 {
-  namespace proto = im::tox::tox4j::av::proto;
-
-  using Events = proto::AvEvents;
+  using Events = EventWriter;
 
   extern ToxInstances<tox::av_ptr, std::unique_ptr<Events>> instances;
 }

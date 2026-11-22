@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -88,14 +89,14 @@ class ToxCoreLifecycleTest {
         ToxCoreImpl(options).use { tox ->
             savedata = tox.savedata
             originalPublicKey = tox.publicKey
-            originalAddress = tox.address.value
+            originalAddress = tox.address.toByteArray()
         }
         assertTrue(savedata.isNotEmpty())
 
         val reloaded = options.copy(savedata = SavedataOptions.ToxSave(savedata))
         ToxCoreImpl(reloaded).use { tox ->
-            assertContentEquals(originalPublicKey.value, tox.publicKey.value)
-            assertContentEquals(originalAddress, tox.address.value)
+            assertEquals(originalPublicKey, tox.publicKey)
+            assertContentEquals(originalAddress, tox.address.toByteArray())
         }
     }
 
@@ -109,7 +110,7 @@ class ToxCoreLifecycleTest {
         }
         val reloaded = options.copy(savedata = SavedataOptions.SecretKey(secretKey))
         ToxCoreImpl(reloaded).use { tox ->
-            assertContentEquals(originalPublicKey.value, tox.publicKey.value)
+            assertEquals(originalPublicKey, tox.publicKey)
         }
     }
 
@@ -149,36 +150,36 @@ class ToxCoreLifecycleTest {
     @Test
     fun dhtId_hasPublicKeySize() {
         ToxCoreImpl(options).use { tox ->
-            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, tox.dhtId.value.size)
+            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, tox.dhtId.toByteArray().size)
         }
     }
 
     @Test
     fun publicKey_hasExpectedSize() {
         ToxCoreImpl(options).use { tox ->
-            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, tox.publicKey.value.size)
+            assertEquals(ToxCoreConstants.PUBLIC_KEY_SIZE, tox.publicKey.toByteArray().size)
         }
     }
 
     @Test
     fun secretKey_hasExpectedSize() {
         ToxCoreImpl(options).use { tox ->
-            assertEquals(ToxCoreConstants.SECRET_KEY_SIZE, tox.secretKey.value.size)
+            assertEquals(ToxCoreConstants.SECRET_KEY_SIZE, tox.secretKey.toByteArray().size)
         }
     }
 
     @Test
     fun address_hasExpectedSize() {
         ToxCoreImpl(options).use { tox ->
-            assertEquals(ToxCoreConstants.ADDRESS_SIZE, tox.address.value.size)
+            assertEquals(ToxCoreConstants.ADDRESS_SIZE, tox.address.toByteArray().size)
         }
     }
 
     @Test
     fun address_startsWithPublicKey() {
         ToxCoreImpl(options).use { tox ->
-            val publicKey = tox.publicKey.value
-            val address = tox.address.value
+            val publicKey = tox.publicKey.toByteArray()
+            val address = tox.address.toByteArray()
             assertContentEquals(publicKey, address.copyOfRange(0, ToxCoreConstants.PUBLIC_KEY_SIZE))
         }
     }
@@ -196,7 +197,7 @@ class ToxCoreLifecycleTest {
             ToxCoreImpl(options).use { b ->
                 assertNotNull(a.publicKey)
                 assertNotNull(b.publicKey)
-                assertTrue(!a.publicKey.value.contentEquals(b.publicKey.value))
+                assertNotEquals(a.publicKey, b.publicKey)
             }
         }
     }

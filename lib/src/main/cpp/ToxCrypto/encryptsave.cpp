@@ -22,22 +22,15 @@ struct pass_key_deleter
 // encrypt or decrypt is still using.
 typedef std::shared_ptr<Tox_Pass_Key> pass_key_ptr;
 
-// Slot N is instance number N+1; freed slots are in the free list.
+// Slot N is instance number N+1. Slots aren't reused: a closed PassKey would
+// reach the next key. Keys are slow to derive, so there are few of them.
 std::mutex pass_key_mutex;
 std::vector<pass_key_ptr> pass_key_pool;
-std::vector<size_t> pass_key_free_list;
 
 jint
 add_pass_key (pass_key_ptr pass_key)
 {
   std::lock_guard<std::mutex> lock (pass_key_mutex);
-  if (!pass_key_free_list.empty ())
-    {
-      size_t idx = pass_key_free_list.back ();
-      pass_key_free_list.pop_back ();
-      pass_key_pool[idx] = std::move (pass_key);
-      return static_cast<jint> (idx + 1);
-    }
   pass_key_pool.push_back (std::move (pass_key));
   return static_cast<jint> (pass_key_pool.size ());
 }
@@ -59,12 +52,7 @@ free_pass_key (jint instance_number)
   if (instance_number < 1
       || static_cast<size_t> (instance_number) > pass_key_pool.size ())
     return;
-  size_t idx = static_cast<size_t> (instance_number) - 1;
-  if (pass_key_pool[idx])
-    {
-      pass_key_pool[idx].reset ();
-      pass_key_free_list.push_back (idx);
-    }
+  pass_key_pool[instance_number - 1].reset ();
 }
 
 }  // namespace

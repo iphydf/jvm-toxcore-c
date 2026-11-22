@@ -1,9 +1,6 @@
 // Instance manager, JNI utilities.
 #include "tox4j/Tox4j.h"
 
-// Protobuf classes.
-#include "Core.pb.h"
-
 // JNI declarations from javah.
 #include "generated/im_tox_tox4j_impl_jni_ToxCoreJni.h"
 
@@ -23,9 +20,7 @@ void reference_symbols_core ();
 
 namespace core
 {
-  namespace proto = im::tox::tox4j::core::proto;
-
-  using Events = proto::CoreEvents;
+  using Events = EventWriter;
 
   extern ToxInstances<tox::core_ptr, std::unique_ptr<Events>> instances;
 }

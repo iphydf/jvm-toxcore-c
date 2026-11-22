@@ -2,7 +2,9 @@ package im.tox.tox4j.core.exceptions
 
 import im.tox.tox4j.exceptions.ToxException
 
-class ToxFileSendChunkException : ToxException {
+class ToxFileSendChunkException(
+    override val code: Code,
+) : ToxException(code) {
     enum class Code {
         /** The length parameter was non-zero, but data was null. */
         NULL,
@@ -28,8 +30,4 @@ class ToxFileSendChunkException : ToxException {
         /** Position parameter was wrong. */
         WRONG_POSITION,
     }
-
-    constructor(code: Code) : this(code, "")
-
-    constructor(code: Code, message: String) : super(code, message)
 }

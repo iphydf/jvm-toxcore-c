@@ -1,7 +1,6 @@
 package im.tox.tox4j.e2e
 
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
-import im.tox.tox4j.core.data.ToxFriendNumber
+import im.tox.tox4j.core.ToxCoreEvent
 import kotlin.test.assertContentEquals
 
 /** Custom packet IDs: lossy 200-254, lossless 160-191. */
@@ -23,30 +22,23 @@ object SubtestCustomPacket {
             val lossy: ByteArray? = null,
             val lossless: ByteArray? = null,
         )
-        val handler =
-            object : ToxCoreEventListener<Received> {
-                override fun friendLossyPacket(
-                    friendNumber: ToxFriendNumber,
-                    data: ByteArray,
-                    state: Received,
-                ): Received =
-                    if (friendNumber.value == aliceFromBob.value && data.isNotEmpty() && data[0] == 200.toByte()) {
-                        state.copy(lossy = state.lossy ?: data)
-                    } else {
-                        state
-                    }
 
-                override fun friendLosslessPacket(
-                    friendNumber: ToxFriendNumber,
-                    data: ByteArray,
-                    state: Received,
-                ): Received =
-                    if (friendNumber.value == aliceFromBob.value && data.isNotEmpty() && data[0] == 160.toByte()) {
-                        state.copy(lossless = state.lossless ?: data)
-                    } else {
-                        state
-                    }
+        fun ByteArray.startsWith(id: Int) = isNotEmpty() && this[0] == id.toByte()
+        val handler = { state: Received, event: ToxCoreEvent ->
+            when {
+                event is ToxCoreEvent.FriendLossyPacket && event.friendNumber == aliceFromBob && event.data.startsWith(200) -> {
+                    state.copy(lossy = state.lossy ?: event.data)
+                }
+
+                event is ToxCoreEvent.FriendLosslessPacket && event.friendNumber == aliceFromBob && event.data.startsWith(160) -> {
+                    state.copy(lossless = state.lossless ?: event.data)
+                }
+
+                else -> {
+                    state
+                }
             }
+        }
         val received =
             harness.waitFor(
                 initial = Received(),

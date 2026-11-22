@@ -1,7 +1,7 @@
 package im.tox.tox4j.impl.jni
 
 import im.tox.tox4j.av.ToxAv
-import im.tox.tox4j.av.callbacks.ToxAvEventListener
+import im.tox.tox4j.av.ToxAvEvent
 import im.tox.tox4j.av.data.ToxAvBitRate
 import im.tox.tox4j.av.data.ToxAvChannels
 import im.tox.tox4j.av.data.ToxAvHeight
@@ -20,10 +20,7 @@ class ToxAvImpl(
     override val iterationInterval: Int
         get() = ToxAvJni.toxavIterationInterval(instanceNumber)
 
-    override fun <ToxCoreState> iterate(
-        handler: ToxAvEventListener<ToxCoreState>,
-        state: ToxCoreState,
-    ): ToxCoreState = ToxAvEventDispatch.dispatch(handler, ToxAvJni.toxavIterate(instanceNumber), state)
+    override fun iterate(): List<ToxAvEvent> = ToxAvEventReader.read(ToxAvJni.toxavIterate(instanceNumber))
 
     override fun call(
         friendNumber: ToxFriendNumber,

@@ -1,9 +1,6 @@
-load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
-load("@protobuf//bazel:java_proto_library.bzl", "java_proto_library")
-load("@protobuf//bazel:proto_library.bzl", "proto_library")
-load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_test")
 load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
-load("@rules_kotlin//kotlin:lint.bzl", "ktlint_fix", "ktlint_test")
+load("@rules_kotlin//kotlin:lint.bzl", "ktlint_config", "ktlint_fix", "ktlint_test")
 load("//jvm-toxcore-c:tox4j_test.bzl", "tox4j_test")
 load("//tools/project:build_defs.bzl", "project")
 
@@ -30,27 +27,6 @@ genrule(
     tags = ["java"],
 )
 
-proto_library(
-    name = "jni_proto",
-    srcs = [
-        "lib/src/main/proto/Av.proto",
-        "lib/src/main/proto/Core.proto",
-    ],
-    tags = ["java"],
-)
-
-cc_proto_library(
-    name = "jni_cc_proto",
-    tags = ["java"],
-    deps = [":jni_proto"],
-)
-
-java_proto_library(
-    name = "jni_java_proto",
-    tags = ["java"],
-    deps = [":jni_proto"],
-)
-
 cc_binary(
     name = "libtox4j-c.so",
     srcs = glob([
@@ -60,10 +36,7 @@ cc_binary(
         ":lib/src/main/cpp/jni.h",
         ":lib/src/main/cpp/jni_md.h",
     ],
-    includes = [
-        "lib/src/main/cpp",
-        "lib/src/main/proto",
-    ],
+    includes = ["lib/src/main/cpp"],
     linkopts = select({
         "@platforms//os:freebsd": ["-Wl,--version-script,$(location lib/src/main/cpp/libtox4j-c.ld)"],
         "@platforms//os:linux": ["-Wl,--version-script,$(location lib/src/main/cpp/libtox4j-c.ld)"],
@@ -75,9 +48,22 @@ cc_binary(
     visibility = ["//visibility:public"],
     deps = [
         "lib/src/main/cpp/libtox4j-c.ld",
-        ":jni_cc_proto",
         "//c-toxcore",
         "@libsodium",
+    ],
+)
+
+cc_test(
+    name = "event_writer_test",
+    size = "small",
+    srcs = [
+        "lib/src/main/cpp/util/event_writer.h",
+        "lib/src/test/cpp/event_writer_test.cc",
+    ],
+    includes = ["lib/src/main/cpp"],
+    deps = [
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -90,7 +76,6 @@ kt_jvm_library(
     data = ["libtox4j-c.so"],
     tags = ["java"],
     visibility = ["//visibility:public"],
-    deps = [":jni_java_proto"],
 )
 
 tox4j_test(
@@ -169,11 +154,6 @@ tox4j_test(
 )
 
 tox4j_test(
-    name = "ToxAvEventDispatchTest",
-    package = "im.tox.tox4j.impl.jni",
-)
-
-tox4j_test(
     name = "AvValueClassTest",
     package = "im.tox.tox4j.av.data",
 )
@@ -184,22 +164,12 @@ tox4j_test(
 )
 
 tox4j_test(
-    name = "ToxCoreEventDispatchTest",
-    package = "im.tox.tox4j.impl.jni",
-)
-
-tox4j_test(
     name = "ToxCryptoJniNullGuardTest",
     package = "im.tox.tox4j.impl.jni",
 )
 
 tox4j_test(
     name = "ToxJniEnumOrdinalsTest",
-    package = "im.tox.tox4j.impl.jni",
-)
-
-tox4j_test(
-    name = "ToxProtoEnumAlignmentTest",
     package = "im.tox.tox4j.impl.jni",
 )
 
@@ -239,6 +209,16 @@ tox4j_test(
 )
 
 tox4j_test(
+    name = "ToxAvCallControlTest",
+    size = "large",
+    srcs = [
+        "lib/src/test/java/im/tox/tox4j/av/ToxAvCallControlTest.kt",
+        "lib/src/test/java/im/tox/tox4j/e2e/Tox4jHarness.kt",
+    ],
+    package = "im.tox.tox4j.av",
+)
+
+tox4j_test(
     name = "Tox4jIntegrationTest",
     # Slow (toxes connecting over loopback), so it only runs when named.
     size = "medium",
@@ -262,9 +242,16 @@ tox4j_test(
     ],
 )
 
+ktlint_config(
+    name = "ktlint_config",
+    editorconfig = ".editorconfig",
+    visibility = [":__subpackages__"],
+)
+
 ktlint_fix(
     name = "ktlint_fix",
     srcs = glob(["**/*.kt"]),
+    config = ":ktlint_config",
     tags = ["java"],
 )
 
@@ -272,5 +259,6 @@ ktlint_test(
     name = "ktlint_test",
     size = "medium",
     srcs = glob(["**/*.kt"]),
+    config = ":ktlint_config",
     tags = ["java"],
 )

@@ -44,6 +44,15 @@ class ToxByteArrayValueEqualityTest {
     }
 
     @Test
+    fun fixedSize_cannotChangeAfterwards() {
+        val bytes = publicKeyBytes()
+        val key = ToxPublicKey(bytes)
+        bytes[0] = 0
+        key.toByteArray()[1] = 0
+        assertEquals(ToxPublicKey(publicKeyBytes()), key)
+    }
+
+    @Test
     fun reference_equality_unchanged() {
         val sample = ToxPublicKey(publicKeyBytes())
         assertTrue(sample === sample)

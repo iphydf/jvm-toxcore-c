@@ -1,8 +1,7 @@
 package im.tox.tox4j.impl.jni
 
-import com.google.protobuf.ByteString
 import im.tox.tox4j.core.ToxCore
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
+import im.tox.tox4j.core.ToxCoreEvent
 import im.tox.tox4j.core.data.ToxAddress
 import im.tox.tox4j.core.data.ToxConferenceId
 import im.tox.tox4j.core.data.ToxConferenceNumber
@@ -31,9 +30,8 @@ import im.tox.tox4j.core.enums.ToxMessageType
 import im.tox.tox4j.core.enums.ToxUserStatus
 import im.tox.tox4j.core.options.SavedataOptions
 import im.tox.tox4j.core.options.ToxOptions
-import im.tox.tox4j.core.proto.Options
 
-private fun <T> Array<T>.atOrFirst(index: Int): T = getOrNull(index) ?: this[0]
+private fun <T> List<T>.atOrFirst(index: Int): T = getOrNull(index) ?: first()
 
 class ToxCoreImpl(
     initOptions: ToxOptions,
@@ -41,40 +39,31 @@ class ToxCoreImpl(
     val options: ToxOptions = initOptions.copy(savedata = SavedataOptions.None)
 
     internal val instanceNumber =
-        run {
-            val opts =
-                Options
-                    .newBuilder()
-                    .setIpv6Enabled(initOptions.ipv6Enabled)
-                    .setUdpEnabled(initOptions.udpEnabled)
-                    .setLocalDiscoveryEnabled(initOptions.localDiscoveryEnabled)
-                    .setDhtAnnouncementsEnabled(initOptions.dhtAnnouncementsEnabled)
-                    .setProxyType(initOptions.proxy.proxyType.ordinal)
-                    .setProxyHost(initOptions.proxy.proxyHost)
-                    .setProxyPort(initOptions.proxy.proxyPort.value)
-                    .setStartPort(initOptions.startPort.value)
-                    .setEndPort(initOptions.endPort.value)
-                    .setTcpPort(initOptions.tcpPort.value)
-                    .setHolePunchingEnabled(initOptions.holePunchingEnabled)
-                    .setSavedataType(initOptions.savedata.savedataType.ordinal)
-                    .setSavedata(ByteString.copyFrom(initOptions.savedata.savedata))
-                    .setExperimentalOwnedData(initOptions.experimentalOwnedData)
-                    .setExperimentalThreadSafety(initOptions.experimentalThreadSafety)
-                    .setExperimentalGroupsPersistence(initOptions.experimentalGroupsPersistence)
-                    .setExperimentalDisableDns(initOptions.experimentalDisableDns)
-                    .build()
-            ToxCoreJni.toxNew(opts.toByteArray())
-        }
+        ToxCoreJni.toxNew(
+            initOptions.ipv6Enabled,
+            initOptions.udpEnabled,
+            initOptions.localDiscoveryEnabled,
+            initOptions.dhtAnnouncementsEnabled,
+            initOptions.proxy.proxyType.ordinal,
+            initOptions.proxy.proxyHost,
+            initOptions.proxy.proxyPort.value,
+            initOptions.startPort.value,
+            initOptions.endPort.value,
+            initOptions.tcpPort.value,
+            initOptions.holePunchingEnabled,
+            initOptions.savedata.savedataType.ordinal,
+            initOptions.savedata.savedata,
+            initOptions.experimentalOwnedData,
+            initOptions.experimentalGroupsPersistence,
+            initOptions.experimentalDisableDns,
+        )
 
     override fun close(): Unit = ToxCoreJni.toxKill(instanceNumber)
 
     override val iterationInterval: Int
         get() = ToxCoreJni.toxIterationInterval(instanceNumber)
 
-    override fun <ToxCoreState> iterate(
-        handler: ToxCoreEventListener<ToxCoreState>,
-        state: ToxCoreState,
-    ): ToxCoreState = ToxCoreEventDispatch.dispatch(handler, ToxCoreJni.toxIterate(instanceNumber), state)
+    override fun iterate(): List<ToxCoreEvent> = ToxCoreEventReader.read(ToxCoreJni.toxIterate(instanceNumber))
 
     override fun conferenceNew(): ToxConferenceNumber = ToxConferenceNumber(ToxCoreJni.toxConferenceNew(instanceNumber))
 
@@ -112,13 +101,13 @@ class ToxCoreImpl(
     ) = ToxCoreJni.toxConferenceSetTitle(instanceNumber, conferenceNumber.value, title)
 
     override fun conferenceGetType(conferenceNumber: ToxConferenceNumber): ToxConferenceType =
-        ToxConferenceType.values().atOrFirst(ToxCoreJni.toxConferenceGetType(instanceNumber, conferenceNumber.value))
+        ToxConferenceType.entries.atOrFirst(ToxCoreJni.toxConferenceGetType(instanceNumber, conferenceNumber.value))
 
     override fun conferenceGetId(conferenceNumber: ToxConferenceNumber): ToxConferenceId =
         ToxConferenceId(ToxCoreJni.toxConferenceGetId(instanceNumber, conferenceNumber.value))
 
     override fun conferenceById(id: ToxConferenceId): ToxConferenceNumber =
-        ToxConferenceNumber(ToxCoreJni.toxConferenceById(instanceNumber, id.value))
+        ToxConferenceNumber(ToxCoreJni.toxConferenceById(instanceNumber, id.bytes))
 
     override fun conferenceOfflinePeerGetName(
         conferenceNumber: ToxConferenceNumber,
@@ -157,20 +146,20 @@ class ToxCoreImpl(
         fileSize: Long,
         fileId: ToxFileId,
         filename: ByteArray,
-    ): ToxFileNumber = ToxFileNumber(ToxCoreJni.toxFileSend(instanceNumber, friendNumber.value, kind, fileSize, fileId.value, filename))
+    ): ToxFileNumber = ToxFileNumber(ToxCoreJni.toxFileSend(instanceNumber, friendNumber.value, kind, fileSize, fileId.bytes, filename))
 
     override fun friendAdd(
         address: ToxAddress,
         message: ByteArray,
-    ): ToxFriendNumber = ToxFriendNumber(ToxCoreJni.toxFriendAdd(instanceNumber, address.value, message))
+    ): ToxFriendNumber = ToxFriendNumber(ToxCoreJni.toxFriendAdd(instanceNumber, address.bytes, message))
 
     override fun friendAddNorequest(publicKey: ToxPublicKey): ToxFriendNumber =
-        ToxFriendNumber(ToxCoreJni.toxFriendAddNorequest(instanceNumber, publicKey.value))
+        ToxFriendNumber(ToxCoreJni.toxFriendAddNorequest(instanceNumber, publicKey.bytes))
 
     override fun friendDelete(friendNumber: ToxFriendNumber) = ToxCoreJni.toxFriendDelete(instanceNumber, friendNumber.value)
 
     override fun friendByPublicKey(publicKey: ToxPublicKey): ToxFriendNumber =
-        ToxFriendNumber(ToxCoreJni.toxFriendByPublicKey(instanceNumber, publicKey.value))
+        ToxFriendNumber(ToxCoreJni.toxFriendByPublicKey(instanceNumber, publicKey.bytes))
 
     override fun friendExists(friendNumber: ToxFriendNumber): Boolean = ToxCoreJni.toxFriendExists(instanceNumber, friendNumber.value)
 
@@ -208,7 +197,7 @@ class ToxCoreImpl(
         chatId: ToxGroupChatId,
         name: ByteArray,
         password: ByteArray,
-    ): ToxGroupNumber = ToxGroupNumber(ToxCoreJni.toxGroupJoin(instanceNumber, chatId.value, name, password))
+    ): ToxGroupNumber = ToxGroupNumber(ToxCoreJni.toxGroupJoin(instanceNumber, chatId.bytes, name, password))
 
     override fun groupIsConnected(groupNumber: ToxGroupNumber): Boolean = ToxCoreJni.toxGroupIsConnected(instanceNumber, groupNumber.value)
 
@@ -233,10 +222,10 @@ class ToxCoreImpl(
     ) = ToxCoreJni.toxGroupSelfSetStatus(instanceNumber, groupNumber.value, status.ordinal)
 
     override fun groupSelfGetStatus(groupNumber: ToxGroupNumber): ToxUserStatus =
-        ToxUserStatus.values().atOrFirst(ToxCoreJni.toxGroupSelfGetStatus(instanceNumber, groupNumber.value))
+        ToxUserStatus.entries.atOrFirst(ToxCoreJni.toxGroupSelfGetStatus(instanceNumber, groupNumber.value))
 
     override fun groupSelfGetRole(groupNumber: ToxGroupNumber): ToxGroupRole =
-        ToxGroupRole.values().atOrFirst(ToxCoreJni.toxGroupSelfGetRole(instanceNumber, groupNumber.value))
+        ToxGroupRole.entries.atOrFirst(ToxCoreJni.toxGroupSelfGetRole(instanceNumber, groupNumber.value))
 
     override fun groupSelfGetPeerId(groupNumber: ToxGroupNumber): ToxGroupPeerNumber =
         ToxGroupPeerNumber(ToxCoreJni.toxGroupSelfGetPeerId(instanceNumber, groupNumber.value))
@@ -257,13 +246,13 @@ class ToxCoreImpl(
         ToxGroupChatId(ToxCoreJni.toxGroupGetChatId(instanceNumber, groupNumber.value))
 
     override fun groupGetPrivacyState(groupNumber: ToxGroupNumber): ToxGroupPrivacyState =
-        ToxGroupPrivacyState.values().atOrFirst(ToxCoreJni.toxGroupGetPrivacyState(instanceNumber, groupNumber.value))
+        ToxGroupPrivacyState.entries.atOrFirst(ToxCoreJni.toxGroupGetPrivacyState(instanceNumber, groupNumber.value))
 
     override fun groupGetVoiceState(groupNumber: ToxGroupNumber): ToxGroupVoiceState =
-        ToxGroupVoiceState.values().atOrFirst(ToxCoreJni.toxGroupGetVoiceState(instanceNumber, groupNumber.value))
+        ToxGroupVoiceState.entries.atOrFirst(ToxCoreJni.toxGroupGetVoiceState(instanceNumber, groupNumber.value))
 
     override fun groupGetTopicLock(groupNumber: ToxGroupNumber): ToxGroupTopicLock =
-        ToxGroupTopicLock.values().atOrFirst(ToxCoreJni.toxGroupGetTopicLock(instanceNumber, groupNumber.value))
+        ToxGroupTopicLock.entries.atOrFirst(ToxCoreJni.toxGroupGetTopicLock(instanceNumber, groupNumber.value))
 
     override fun groupGetPeerLimit(groupNumber: ToxGroupNumber): Int = ToxCoreJni.toxGroupGetPeerLimit(instanceNumber, groupNumber.value)
 
@@ -363,18 +352,18 @@ class ToxCoreImpl(
         groupNumber: ToxGroupNumber,
         peerNumber: ToxGroupPeerNumber,
     ): ToxUserStatus =
-        ToxUserStatus.values().atOrFirst(ToxCoreJni.toxGroupPeerGetStatus(instanceNumber, groupNumber.value, peerNumber.value))
+        ToxUserStatus.entries.atOrFirst(ToxCoreJni.toxGroupPeerGetStatus(instanceNumber, groupNumber.value, peerNumber.value))
 
     override fun groupPeerGetRole(
         groupNumber: ToxGroupNumber,
         peerNumber: ToxGroupPeerNumber,
-    ): ToxGroupRole = ToxGroupRole.values().atOrFirst(ToxCoreJni.toxGroupPeerGetRole(instanceNumber, groupNumber.value, peerNumber.value))
+    ): ToxGroupRole = ToxGroupRole.entries.atOrFirst(ToxCoreJni.toxGroupPeerGetRole(instanceNumber, groupNumber.value, peerNumber.value))
 
     override fun groupPeerGetConnectionStatus(
         groupNumber: ToxGroupNumber,
         peerNumber: ToxGroupPeerNumber,
     ): ToxConnection =
-        ToxConnection.values().atOrFirst(ToxCoreJni.toxGroupPeerGetConnectionStatus(instanceNumber, groupNumber.value, peerNumber.value))
+        ToxConnection.entries.atOrFirst(ToxCoreJni.toxGroupPeerGetConnectionStatus(instanceNumber, groupNumber.value, peerNumber.value))
 
     override fun groupPeerGetPublicKey(
         groupNumber: ToxGroupNumber,
@@ -387,13 +376,13 @@ class ToxCoreImpl(
         host: String,
         port: ToxPort,
         publicKey: ToxDhtId,
-    ) = ToxCoreJni.toxBootstrap(instanceNumber, host, port.value, publicKey.value)
+    ) = ToxCoreJni.toxBootstrap(instanceNumber, host, port.value, publicKey.bytes)
 
     override fun addTcpRelay(
         host: String,
         port: ToxPort,
         publicKey: ToxDhtId,
-    ) = ToxCoreJni.toxAddTcpRelay(instanceNumber, host, port.value, publicKey.value)
+    ) = ToxCoreJni.toxAddTcpRelay(instanceNumber, host, port.value, publicKey.bytes)
 
     override val address: ToxAddress get() = ToxAddress(ToxCoreJni.toxSelfGetAddress(instanceNumber))
 
@@ -415,9 +404,9 @@ class ToxCoreImpl(
 
     override fun setStatus(status: ToxUserStatus) = ToxCoreJni.toxSelfSetStatus(instanceNumber, status.ordinal)
 
-    override val status: ToxUserStatus get() = ToxUserStatus.values().atOrFirst(ToxCoreJni.toxSelfGetStatus(instanceNumber))
+    override val status: ToxUserStatus get() = ToxUserStatus.entries.atOrFirst(ToxCoreJni.toxSelfGetStatus(instanceNumber))
 
-    override val friendList: List<ToxFriendNumber> get() = ToxCoreJni.toxSelfGetFriendList(instanceNumber).map { ToxFriendNumber(it) }
+    override val friendList: List<ToxFriendNumber> get() = ToxCoreJni.toxSelfGetFriendList(instanceNumber).map(::ToxFriendNumber)
 
     override fun setTyping(
         friendNumber: ToxFriendNumber,
@@ -454,7 +443,7 @@ class ToxCoreImpl(
     ) = ToxCoreJni.toxConferenceInvite(instanceNumber, friendNumber.value, conferenceNumber.value)
 
     override val conferenceChatlist: List<ToxConferenceNumber> get() =
-        ToxCoreJni.toxConferenceGetChatlist(instanceNumber).map { ToxConferenceNumber(it) }
+        ToxCoreJni.toxConferenceGetChatlist(instanceNumber).map(::ToxConferenceNumber)
 
     override val dhtId: ToxDhtId get() = ToxDhtId(ToxCoreJni.toxSelfGetDhtId(instanceNumber))
 
@@ -462,7 +451,7 @@ class ToxCoreImpl(
 
     override val tcpPort: ToxPort get() = ToxPort(ToxCoreJni.toxSelfGetTcpPort(instanceNumber))
 
-    override val groupList: List<ToxGroupNumber> get() = ToxCoreJni.toxGroupGetGroupList(instanceNumber).map { ToxGroupNumber(it) }
+    override val groupList: List<ToxGroupNumber> get() = ToxCoreJni.toxGroupGetGroupList(instanceNumber).map(::ToxGroupNumber)
 
     protected fun finalize() {
         runCatching {

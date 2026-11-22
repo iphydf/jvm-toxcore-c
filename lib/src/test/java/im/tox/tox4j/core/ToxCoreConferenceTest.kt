@@ -140,7 +140,7 @@ class ToxCoreConferenceTest {
     fun getId_returnsExpectedLength() {
         ToxCoreImpl(options).use { tox ->
             val conf = tox.conferenceNew()
-            assertEquals(32, tox.conferenceGetId(conf).value.size)
+            assertEquals(32, tox.conferenceGetId(conf).toByteArray().size)
         }
     }
 

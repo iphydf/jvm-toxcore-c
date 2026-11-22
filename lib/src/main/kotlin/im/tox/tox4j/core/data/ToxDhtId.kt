@@ -3,17 +3,21 @@ package im.tox.tox4j.core.data
 import im.tox.tox4j.core.ToxCoreConstants
 
 class ToxDhtId(
-    val value: ByteArray,
+    bytes: ByteArray,
 ) {
     init {
-        require(value.size == ToxCoreConstants.DHT_ID_SIZE) {
-            "ToxDhtId must be ${ToxCoreConstants.DHT_ID_SIZE} bytes, got ${value.size}"
+        require(bytes.size == ToxCoreConstants.DHT_ID_SIZE) {
+            "ToxDhtId must be ${ToxCoreConstants.DHT_ID_SIZE} bytes, got ${bytes.size}"
         }
     }
 
-    override fun equals(other: Any?): Boolean = this === other || (other is ToxDhtId && value.contentEquals(other.value))
+    internal val bytes: ByteArray = bytes.copyOf()
 
-    override fun hashCode(): Int = value.contentHashCode()
+    fun toByteArray(): ByteArray = bytes.copyOf()
 
-    override fun toString(): String = "ToxDhtId(<${value.size} bytes>)"
+    override fun equals(other: Any?): Boolean = this === other || (other is ToxDhtId && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = "ToxDhtId(<${bytes.size} bytes>)"
 }
